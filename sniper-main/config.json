@@ -1,0 +1,18 @@
+{
+  "origins":         ["WAW"],
+  "destinations":    ["CNX", "BKK", "FNC", "ROM", "MIL", "BCN", "MAD"],
+  "one_way":         false,
+  "min_trip_days":   3,
+  "max_trip_days":   14,
+  "max_price":       800,
+  "max_price_total": 9999,
+  "max_price_per_km": 999,
+  "min_score":       0,
+  "min_composite_score": 60,
+  "weight_price": 0.4,
+  "weight_price_per_km": 0.3,
+  "weight_baseline_diff": 0.2,
+  "weight_trip_duration": 0.1,
+  "top_n":           10,
+  "excluded_airlines": []
+}
