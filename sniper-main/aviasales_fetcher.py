@@ -37,7 +37,7 @@ class AviasalesFetcherError(Exception):
     ...
 
 
-@dataclass
+@dataclass(slots=True)
 class FlightOffer:
     origin: str
     destination: str
@@ -72,9 +72,9 @@ class AviasalesFetcher:
         return f"{self.domain}{rel}{sep}marker={self.marker}"
 
     @staticmethod
-    def _within_age(found_at: str, max_h: int) -> bool:
+    def _within_age(fetched_at: str, max_h: int) -> bool:
         try:
-            dt = datetime.fromisoformat(found_at.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
         except Exception:
             return False
         return datetime.now(timezone.utc) - dt <= timedelta(hours=max_h)
@@ -120,8 +120,8 @@ class AviasalesFetcher:
 
         offers: List[FlightOffer] = []
         for item in payload.get("data", []):
-            found = item.get("found_at") or ""
-            if found and not self._within_age(found, max_age_h):
+            fetched_raw = item.get("found_at") or ""
+            if fetched_raw and not self._within_age(fetched_raw, max_age_h):
                 continue
             link = item.get("link")
             if not link:
@@ -136,8 +136,8 @@ class AviasalesFetcher:
             ret_date = date.fromisoformat(ret_s) if ret_s else None
             try:
                 fetched = (
-                    datetime.fromisoformat(found.replace("Z", "+00:00"))
-                    if found
+                    datetime.fromisoformat(fetched_raw.replace("Z", "+00:00"))
+                    if fetched_raw
                     else datetime.now(timezone.utc)
                 )
             except Exception:
@@ -220,7 +220,7 @@ class AviasalesFetcher:
                         notified_at TEXT,
                         airline TEXT,
                         deep_link TEXT,
-                        found_at TEXT
+                        fetched_at TEXT
                     )""")
             else:
                 for name, typ in [
@@ -250,7 +250,7 @@ class AviasalesFetcher:
                 cur.execute("""
                     INSERT INTO flights
                     (origin,destination,depart,return_date,price,price_per_km,
-                     score,notified_at,airline,deep_link,found_at)
+                     score,notified_at,airline,deep_link,fetched_at)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?)
                 """, (
                     o.origin, o.destination, o.depart_date, o.return_date,
