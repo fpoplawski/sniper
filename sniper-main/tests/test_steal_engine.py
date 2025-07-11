@@ -16,8 +16,8 @@ class Offer:
 
 
 def test_is_steal_true(monkeypatch):
-    monkeypatch.setattr(steal_engine, "get_last_30d_avg", lambda o, d: Decimal("100"))
-    offer = Offer("WAW", "JFK", Decimal("70"))
+    monkeypatch.setattr(steal_engine, "get_last_30d_avg", lambda o, d: Decimal("1000"))
+    offer = Offer("WAW", "JFK", Decimal("750"))
     cfg = Config()
     assert steal_engine.is_steal(offer, cfg)
 
