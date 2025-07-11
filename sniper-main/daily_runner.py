@@ -2,6 +2,9 @@ import json
 from datetime import datetime
 from aviasales_fetcher import AviasalesFetcher
 from deal_filter import filter_deals_by_score, travel_days
+from steal_engine import is_steal
+from notifier import send_telegram
+from db import insert_offer, mark_alert_sent, DB_FILE, get_last_30d_avg
 
 def load_config(path="config.json"):
     with open(path, encoding="utf-8") as fh:
@@ -58,6 +61,25 @@ def main():
                         continue
                 if not is_flight_duration_reasonable(off, cfg.get("max_flight_duration_hours", 15)):
                     continue
+
+                offer_id = insert_offer(off, db_path=DB_FILE)
+                if is_steal(off, cfg) and not getattr(off, "alert_sent", False):
+                    diff = int(
+                        100
+                        * (
+                            1
+                            - float(off.price_pln)
+                            / float(get_last_30d_avg(off.origin, off.destination))
+                        )
+                    )
+                    msg = (
+                        f"✈️ *STEAL!* {off.origin}–{off.destination} "
+                        f"{off.price_pln} PLN  ({off.depart_date}→{off.return_date})\n"
+                        f"_{diff}% poniżej średniej_  \n[Rezerwuj]({off.deep_link})"
+                    )
+                    send_telegram(msg)
+                    mark_alert_sent(offer_id, db_path=DB_FILE)
+
                 all_valid_offers.append(off)
 
     if not all_valid_offers:
