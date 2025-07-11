@@ -19,7 +19,7 @@ def setup_db(records):
     conn = sqlite3.connect(path)
     cur = conn.cursor()
     cur.execute(
-        "CREATE TABLE flights (origin TEXT, destination TEXT, price REAL, found_at TEXT)"
+        "CREATE TABLE flights (origin TEXT, destination TEXT, price REAL, fetched_at TEXT)"
     )
     cur.executemany(
         "INSERT INTO flights VALUES (?, ?, ?, ?)",

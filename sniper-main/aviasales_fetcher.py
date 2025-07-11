@@ -5,7 +5,8 @@ import csv
 import os
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
+from decimal import Decimal
 from typing import Iterable, List, Literal, Optional, TYPE_CHECKING
 
 try:
@@ -40,12 +41,15 @@ class AviasalesFetcherError(Exception):
 class FlightOffer:
     origin: str
     destination: str
-    depart_date: str
-    return_date: Optional[str]
-    price: float
+    depart_date: date
+    return_date: Optional[date]
+    price_pln: Decimal
     airline: str
+    stops: int
+    total_flight_time_h: float
+    max_layover_h: float
     deep_link: str
-    found_at: str
+    fetched_at: datetime
 
 
 class AviasalesFetcher:
@@ -68,9 +72,9 @@ class AviasalesFetcher:
         return f"{self.domain}{rel}{sep}marker={self.marker}"
 
     @staticmethod
-    def _within_age(found_at: str, max_h: int) -> bool:
+    def _within_age(fetched_at: str, max_h: int) -> bool:
         try:
-            dt = datetime.fromisoformat(found_at.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(fetched_at.replace("Z", "+00:00"))
         except Exception:
             return False
         return datetime.now(timezone.utc) - dt <= timedelta(hours=max_h)
@@ -116,22 +120,41 @@ class AviasalesFetcher:
 
         offers: List[FlightOffer] = []
         for item in payload.get("data", []):
-            found = item.get("found_at") or ""
-            if found and not self._within_age(found, max_age_h):
+            fetched_raw = item.get("found_at") or ""
+            if fetched_raw and not self._within_age(fetched_raw, max_age_h):
                 continue
             link = item.get("link")
             if not link:
                 continue
+            try:
+                depart = date.fromisoformat(
+                    item.get("depart_date") or item.get("departure_at", "")
+                )
+            except Exception:
+                continue
+            ret_s = item.get("return_date")
+            ret_date = date.fromisoformat(ret_s) if ret_s else None
+            try:
+                fetched = (
+                    datetime.fromisoformat(fetched_raw.replace("Z", "+00:00"))
+                    if fetched_raw
+                    else datetime.now(timezone.utc)
+                )
+            except Exception:
+                fetched = datetime.now(timezone.utc)
             offers.append(
                 FlightOffer(
                     origin=item.get("origin", origin),
                     destination=item.get("destination", destination or ""),
-                    depart_date=item.get("depart_date", item.get("departure_at", "")),
-                    return_date=item.get("return_date"),
-                    price=float(item.get("price", 0.0)),
+                    depart_date=depart,
+                    return_date=ret_date,
+                    price_pln=Decimal(str(item.get("price", 0.0))),
                     airline=item.get("airline", ""),
+                    stops=int(item.get("stops", 0)),
+                    total_flight_time_h=float(item.get("total_flight_time_h", 0.0)),
+                    max_layover_h=float(item.get("max_layover_h", 0.0)),
                     deep_link=self._build_url(link),
-                    found_at=found,
+                    fetched_at=fetched,
                 )
             )
         return offers
@@ -149,11 +172,34 @@ class AviasalesFetcher:
                 wr = csv.writer(fh)
                 if is_new:
                     wr.writerow([
-                        "origin", "destination", "depart", "return_date",
-                        "price", "airline", "deep_link", "found_at"])
+                        "origin",
+                        "destination",
+                        "depart",
+                        "return_date",
+                        "price_pln",
+                        "airline",
+                        "stops",
+                        "total_flight_time_h",
+                        "max_layover_h",
+                        "deep_link",
+                        "fetched_at",
+                    ])
                 wr.writerows([
-                    (o.origin, o.destination, o.depart_date, o.return_date,
-                     o.price, o.airline, o.deep_link, o.found_at) for o in offers])
+                    (
+                        o.origin,
+                        o.destination,
+                        o.depart_date,
+                        o.return_date,
+                        float(o.price_pln),
+                        o.airline,
+                        o.stops,
+                        o.total_flight_time_h,
+                        o.max_layover_h,
+                        o.deep_link,
+                        o.fetched_at.isoformat(),
+                    )
+                    for o in offers
+                ])
 
         elif backend == "sqlite":
             conn = sqlite3.connect(f"{path}.db")
@@ -174,7 +220,7 @@ class AviasalesFetcher:
                         notified_at TEXT,
                         airline TEXT,
                         deep_link TEXT,
-                        found_at TEXT
+                        fetched_at TEXT
                     )""")
             else:
                 for name, typ in [
@@ -193,22 +239,22 @@ class AviasalesFetcher:
 
             new_count = 0
             for o in offers:
-                key = (o.origin, o.destination, o.depart_date, o.price, o.airline)
+                key = (o.origin, o.destination, o.depart_date, float(o.price_pln), o.airline)
                 if key in existing:
                     continue
                 try:
                     dist = distance_km(o.origin, o.destination)
-                    ppkm = o.price / dist if dist else None
+                    ppkm = float(o.price_pln) / dist if dist else None
                 except Exception:
                     ppkm = None
                 cur.execute("""
                     INSERT INTO flights
                     (origin,destination,depart,return_date,price,price_per_km,
-                     score,notified_at,airline,deep_link,found_at)
+                     score,notified_at,airline,deep_link,fetched_at)
                     VALUES (?,?,?,?,?,?,?,?,?,?,?)
                 """, (
                     o.origin, o.destination, o.depart_date, o.return_date,
-                    o.price, ppkm, 0.0, None, o.airline, o.deep_link, o.found_at))
+                    float(o.price_pln), ppkm, 0.0, None, o.airline, o.deep_link, o.fetched_at.isoformat()))
                 new_count += 1
 
             conn.commit()
@@ -255,7 +301,7 @@ def main() -> None:
         "dest": o.destination,
         "depart": o.depart_date,
         "return": o.return_date,
-        "price": o.price,
+        "price_pln": float(o.price_pln),
         "airline": o.airline,
         "link": o.deep_link if args.plain else o.deep_link[:50] + "…",
     } for o in offers]
