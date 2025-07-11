@@ -114,7 +114,7 @@ def test_skip_incomplete_rows(mock_get):
     offers = fetcher.search_prices("WAW", max_age_h=24)
     assert len(offers) == 1
     assert offers[0].deep_link.startswith("https://www.aviasales.com/f1")
-    assert offers[0].found_at == ""
+    assert isinstance(offers[0].fetched_at, datetime)
 
 
 @patch("aviasales_fetcher.AviasalesFetcher.search_prices")
