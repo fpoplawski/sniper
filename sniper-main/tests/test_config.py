@@ -3,7 +3,7 @@ import sys
 import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from config import load_config, Config
+from config import Config
 
 
 def test_load_config(tmp_path):
@@ -22,7 +22,7 @@ def test_load_config(tmp_path):
     cfg_file = tmp_path / "config.json"
     cfg_file.write_text(json.dumps(cfg))
 
-    loaded = load_config(str(cfg_file))
+    loaded = Config.from_json(str(cfg_file))
     assert isinstance(loaded, Config)
     assert loaded.min_trip_days == 5
     assert loaded.max_trip_days == 15
