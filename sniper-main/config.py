@@ -6,7 +6,7 @@ import json
 import os
 from typing import Any, Dict
 
-# Expected keys in configuration file
+# Supported configuration keys
 CONFIG_FIELDS = [
     "origins",
     "destinations",
@@ -23,11 +23,18 @@ CONFIG_FIELDS = [
     "weight_trip_duration",
     "passengers",
     "excluded_airlines",
+    "steal_threshold",
+    "max_stops",
+    "max_layover_h",
+    "poll_interval_h",
+    "currency",
+    "telegram_instant",
+    "email_daily",
 ]
 
 
-def load_config(path: str | None = None) -> Dict[str, Any]:
-    """Return configuration dictionary loaded from *path* or ``config.json``."""
+def load_config(path: str | None = None) -> "Config":
+    """Return configuration loaded from *path* or ``config.json``."""
     cfg_path = path or os.path.join(os.getcwd(), "config.json")
     with open(cfg_path, "r", encoding="utf-8") as fh:
         data = json.load(fh)
@@ -41,13 +48,20 @@ def load_config(path: str | None = None) -> Dict[str, Any]:
         "weight_price_per_km": 0.3,
         "weight_baseline_diff": 0.2,
         "weight_trip_duration": 0.1,
+        "steal_threshold": 0.20,
+        "max_stops": 1,
+        "max_layover_h": 6.0,
+        "poll_interval_h": 6,
+        "currency": "PLN",
+        "telegram_instant": True,
+        "email_daily": True,
     }
 
     cfg = {key: data.get(key, defaults.get(key)) for key in CONFIG_FIELDS}
-    return cfg
+    return Config(**{k: cfg[k] for k in Config.__dataclass_fields__})
 
 
-__all__ = ["load_config"]
+__all__ = ["load_config", "Config"]
 
 
 @dataclass(slots=True)
