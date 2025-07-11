@@ -11,10 +11,12 @@ def aggregate(db_path: str = DB_FILE) -> None:
     conn = sqlite3.connect(db_path)
     cur = conn.execute(
         """
-        SELECT origin, destination, date(fetched_at) AS day, MIN(price_pln)
-        FROM offers_raw
-        WHERE date(fetched_at) >= date('now', '-30 day')
-        GROUP BY origin, destination, day
+        SELECT origin, destination,
+               DATE(fetched_at) AS day,
+               MIN(price_pln) AS min_price
+          FROM offers_raw
+         WHERE fetched_at >= DATE('now', '-30 days')
+         GROUP BY origin, destination, day
         """
     )
     data: defaultdict[tuple[str, str], list[float]] = defaultdict(list)
@@ -30,6 +32,14 @@ def aggregate(db_path: str = DB_FILE) -> None:
             continue
         mean_price = sum(prices) / len(prices)
         upsert_daily_avg(origin, dest, mean_price, db_path=db_path)
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute(
+        "DELETE FROM offers_agg WHERE day < DATE('now', '-60 days')"
+    )
+    conn.commit()
+    conn.close()
 
 
 def main() -> None:

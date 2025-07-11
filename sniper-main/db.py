@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -83,7 +83,7 @@ def get_last_30d_avg(origin: str, dest: str, db_path: str = DB_FILE) -> Optional
 
 def upsert_daily_avg(origin: str, dest: str, mean_price: Decimal | float, db_path: str = DB_FILE) -> None:
     """Insert or update today's average price for ``origin``-``dest``."""
-    day_str = date.today().isoformat()
+    day_str = datetime.utcnow().replace(tzinfo=timezone.utc).date().isoformat()
     conn = sqlite3.connect(db_path)
     conn.execute(
         """
