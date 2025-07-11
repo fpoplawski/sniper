@@ -97,9 +97,10 @@ class AviasalesFetcher:
         params: dict[str, str] = {
             "origin": origin,
             "currency": currency,
-            "limit": str(limit),
             "token": self.token,
         }
+        if limit:
+            params["limit"] = str(limit)
 
         if destination:
             params.update({"destination": destination, "one_way": str(one_way).lower()})
@@ -156,9 +157,11 @@ class AviasalesFetcher:
         if not payload.get("success", True):
             raise AviasalesFetcherError("API response unsuccessful")
 
+        stop_limit = max_stops if max_stops is not None else CFG.max_stops
+
         offers: List[FlightOffer] = []
         for item in payload.get("data", []):
-            if int(item.get("number_of_changes", item.get("stops", 0))) > CFG.max_stops:
+            if int(item.get("number_of_changes", item.get("stops", 0))) > stop_limit:
                 continue
             fetched_raw = item.get("found_at") or ""
             if fetched_raw and not self._within_age(fetched_raw, max_age_h):
@@ -186,11 +189,8 @@ class AviasalesFetcher:
                 )
             except Exception:
                 fetched = datetime.now(timezone.utc)
-            total_ft = float(item.get("total_flight_time_h", 0.0))
             layover = float(item.get("max_layover_h", 0.0))
-            if (total_ft and total_ft > CFG.max_layover_h) or (
-                layover and layover > CFG.max_layover_h
-            ):
+            if layover and layover > CFG.max_layover_h:
                 continue
             offers.append(
                 FlightOffer(
