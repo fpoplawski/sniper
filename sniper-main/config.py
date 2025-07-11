@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import json
 import os
 from typing import Any, Dict
@@ -46,3 +48,21 @@ def load_config(path: str | None = None) -> Dict[str, Any]:
 
 
 __all__ = ["load_config"]
+
+
+@dataclass(slots=True)
+class Config:
+    """Default configuration values."""
+
+    min_trip_days: int = 5
+    max_trip_days: int = 14
+    steal_threshold: float = 0.20  # 20%
+    max_stops: int = 1
+    max_layover_h: float = 6.0
+    poll_interval_h: int = 6  # co 6 godz.
+    currency: str = "PLN"
+    telegram_instant: bool = True
+    email_daily: bool = True
+
+
+__all__.append("Config")
