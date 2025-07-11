@@ -12,7 +12,7 @@ def compute_baseline(db_path: str, origin: str, dest: str, days: int = 90) -> fl
     """Return median of daily minimal prices for given route in the last *days*.
 
     Prices are pulled from the ``flights`` table in the SQLite database located
-    at ``db_path``.  The ``found_at`` timestamp is used to filter offers from
+    at ``db_path``.  The ``fetched_at`` timestamp is used to filter offers from
     the last ``days`` days.
     """
     conn = sqlite3.connect(db_path)
@@ -22,8 +22,8 @@ def compute_baseline(db_path: str, origin: str, dest: str, days: int = 90) -> fl
         SELECT MIN(price)
         FROM flights
         WHERE origin=? AND destination=?
-          AND date(found_at) >= date('now', ?)
-        GROUP BY date(found_at)
+          AND date(fetched_at) >= date('now', ?)
+        GROUP BY date(fetched_at)
         """,
         (origin, dest, f'-{days} day'),
     )
