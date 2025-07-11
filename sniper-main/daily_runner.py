@@ -1,10 +1,21 @@
 import json
 from datetime import datetime
+import logging
 from aviasales_fetcher import AviasalesFetcher
 from deal_filter import filter_deals_by_score, travel_days
 from steal_engine import is_steal
 from notifier import send_telegram
 from db import insert_offer, mark_alert_sent, DB_FILE, get_last_30d_avg
+from config import Config
+
+
+def format_msg(offer, diff_percent: int) -> str:
+    """Return formatted Telegram alert message."""
+    return (
+        f"✈️ *STEAL!* {offer.origin}–{offer.destination} "
+        f"{offer.price_pln} PLN  ({offer.depart_date}→{offer.return_date})\n"
+        f"_{diff_percent}% poniżej średniej_  \n[Rezerwuj]({offer.deep_link})"
+    )
 
 def load_config(path="config.json"):
     with open(path, encoding="utf-8") as fh:
@@ -63,21 +74,20 @@ def main():
                     continue
 
                 offer_id = insert_offer(off, db_path=DB_FILE)
-                if is_steal(off, cfg) and not getattr(off, "alert_sent", False):
-                    diff = int(
-                        100
-                        * (
-                            1
-                            - float(off.price_pln)
-                            / float(get_last_30d_avg(off.origin, off.destination))
+                cfg_obj = Config()
+                if is_steal(off, cfg_obj) and not getattr(off, "alert_sent", False):
+                    avg = get_last_30d_avg(off.origin, off.destination)
+                    diff_percent = 0
+                    if avg:
+                        diff_percent = int(
+                            100
+                            * (
+                                1
+                                - float(off.price_pln)
+                                / float(avg)
+                            )
                         )
-                    )
-                    msg = (
-                        f"✈️ *STEAL!* {off.origin}–{off.destination} "
-                        f"{off.price_pln} PLN  ({off.depart_date}→{off.return_date})\n"
-                        f"_{diff}% poniżej średniej_  \n[Rezerwuj]({off.deep_link})"
-                    )
-                    send_telegram(msg)
+                    send_telegram(format_msg(off, diff_percent))
                     mark_alert_sent(offer_id, db_path=DB_FILE)
 
                 all_valid_offers.append(off)
@@ -91,4 +101,8 @@ def main():
     print(f"Saved {len(filtered)} filtered offers.")
 
 if __name__ == "__main__":
-    main()
+    logging.basicConfig(level=logging.INFO)
+    try:
+        main()
+    except Exception:
+        logging.exception("daily_runner failed")
