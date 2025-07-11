@@ -20,6 +20,9 @@ if TYPE_CHECKING:
 
 import requests
 from geo import distance_km
+from config import Config
+
+CFG = Config()
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -79,6 +82,45 @@ class AviasalesFetcher:
             return False
         return datetime.now(timezone.utc) - dt <= timedelta(hours=max_h)
 
+    def _build_params(
+        self,
+        origin: str,
+        destination: Optional[str] = None,
+        departure_at: Optional[str] = None,
+        return_at: Optional[str] = None,
+        one_way: bool = True,
+        currency: str = "PLN",
+        limit: int = 100,
+        max_stops: Optional[int] = None,
+    ) -> dict[str, str]:
+        """Return request parameters for Aviasales API."""
+        params: dict[str, str] = {
+            "origin": origin,
+            "currency": currency,
+            "token": self.token,
+        }
+        if limit:
+            params["limit"] = str(limit)
+
+        if destination:
+            params.update({"destination": destination, "one_way": str(one_way).lower()})
+            if departure_at:
+                params["departure_at"] = departure_at
+            if return_at:
+                params["return_at"] = return_at
+                try:
+                    dep = date.fromisoformat(departure_at or "")
+                    ret = date.fromisoformat(return_at)
+                    diff = (ret - dep).days
+                    if CFG.min_trip_days <= diff <= CFG.max_trip_days:
+                        params["trip_duration"] = str(diff)
+                except Exception:
+                    pass
+        if max_stops is not None and max_stops == 0:
+            params["direct"] = "true"
+
+        return params
+
     def search_prices(
         self,
         origin: str,
@@ -89,23 +131,20 @@ class AviasalesFetcher:
         currency: str = "PLN",
         limit: int = 100,
         max_age_h: int = 12,
+        max_stops: Optional[int] = None,
     ) -> List[FlightOffer]:
-        params: dict[str, str] = {
-            "origin": origin,
-            "currency": currency,
-            "limit": str(limit),
-            "token": self.token,
-        }
+        params = self._build_params(
+            origin=origin,
+            destination=destination,
+            departure_at=departure_at,
+            return_at=return_at,
+            one_way=one_way,
+            currency=currency,
+            limit=limit,
+            max_stops=max_stops,
+        )
 
-        if destination:
-            endpoint = "/prices_for_dates"
-            params.update({"destination": destination, "one_way": str(one_way).lower()})
-            if departure_at:
-                params["departure_at"] = departure_at
-            if return_at:
-                params["return_at"] = return_at
-        else:
-            endpoint = "/prices/latest"
+        endpoint = "/prices_for_dates" if destination else "/prices/latest"
 
         url = f"{self.base_url}{endpoint}"
         hdrs = {**BASE_HEADERS, "X-Access-Token": self.token}
@@ -118,8 +157,12 @@ class AviasalesFetcher:
         if not payload.get("success", True):
             raise AviasalesFetcherError("API response unsuccessful")
 
+        stop_limit = max_stops if max_stops is not None else CFG.max_stops
+
         offers: List[FlightOffer] = []
         for item in payload.get("data", []):
+            if int(item.get("number_of_changes", item.get("stops", 0))) > stop_limit:
+                continue
             fetched_raw = item.get("found_at") or ""
             if fetched_raw and not self._within_age(fetched_raw, max_age_h):
                 continue
@@ -134,6 +177,10 @@ class AviasalesFetcher:
                 continue
             ret_s = item.get("return_date")
             ret_date = date.fromisoformat(ret_s) if ret_s else None
+            if ret_date:
+                trip_len = (ret_date - depart).days
+                if trip_len < CFG.min_trip_days or trip_len > CFG.max_trip_days:
+                    continue
             try:
                 fetched = (
                     datetime.fromisoformat(fetched_raw.replace("Z", "+00:00"))
@@ -142,6 +189,9 @@ class AviasalesFetcher:
                 )
             except Exception:
                 fetched = datetime.now(timezone.utc)
+            layover = float(item.get("max_layover_h", 0.0))
+            if layover and layover > CFG.max_layover_h:
+                continue
             offers.append(
                 FlightOffer(
                     origin=item.get("origin", origin),
