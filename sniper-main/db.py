@@ -11,7 +11,8 @@ from aviasales_fetcher import FlightOffer
 
 # Default paths
 DB_FILE = os.path.join(os.path.dirname(__file__), "aviasales_offers.db")
-SCHEMA_FILE = os.path.join(os.path.dirname(__file__), "..", "schema.sql")
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+SCHEMA_FILE = os.path.join(BASE_DIR, "schema.sql")
 
 
 def init_db(db_path: str = DB_FILE, schema_path: str = SCHEMA_FILE) -> None:
