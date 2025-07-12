@@ -78,5 +78,9 @@ class Config:
     telegram_instant: bool = True
     email_daily: bool = True
 
+    @classmethod
+    def from_json(cls, path: str | None = None) -> "Config":
+        return load_config(path)
+
 
 __all__.append("Config")

@@ -74,7 +74,7 @@ def main():
                     continue
 
                 offer_id = insert_offer(off, db_path=DB_FILE)
-                cfg_obj = Config()
+                cfg_obj = Config.from_json()
                 if is_steal(off, cfg_obj) and not getattr(off, "alert_sent", False):
                     avg = get_last_30d_avg(off.origin, off.destination)
                     diff_percent = 0
