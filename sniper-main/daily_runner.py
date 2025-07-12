@@ -51,7 +51,8 @@ def is_flight_duration_reasonable(offer, max_hours=15):
     link = offer.deep_link.lower()
     return not any(token in link for token in too_long_indicators)
 
-def main():
+def run_once() -> None:
+    """Fetch new offers once and process them."""
     fetcher = AviasalesFetcher(domain=getattr(cfg, "domain"))
 
     all_valid_offers = []
@@ -107,9 +108,17 @@ def main():
     fetcher.save_offers(filtered, backend=getattr(cfg, "save", "sqlite"))
     print(f"Saved {len(filtered)} filtered offers.")
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+
+def main() -> None:
+    """Entry-point executed by ``tasks.py`` or cron."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
     try:
-        main()
+        run_once()
     except Exception:
-        logging.exception("daily_runner failed")
+        logging.exception("daily_runner main failed")
+
+if __name__ == "__main__":
+    main()
