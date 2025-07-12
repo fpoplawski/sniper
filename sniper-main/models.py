@@ -1,3 +1,5 @@
+"""Data models used throughout the project."""
+
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
