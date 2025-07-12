@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from aviasales_fetcher import FlightOffer
+from models import FlightOffer
 
 
 # Default paths
@@ -41,7 +41,7 @@ def insert_offer(offer: FlightOffer, db_path: str = DB_FILE) -> int:
             offer.destination,
             offer.depart_date.isoformat(),
             offer.return_date.isoformat() if offer.return_date else None,
-            str(offer.price_pln),
+            offer.price_pln,
             offer.airline,
             offer.stops,
             offer.total_flight_time_h,

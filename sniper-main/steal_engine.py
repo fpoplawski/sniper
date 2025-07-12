@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from config import Config
 from db import get_last_30d_avg
-from aviasales_fetcher import FlightOffer
+from models import FlightOffer
 
 
 def is_steal(offer: FlightOffer, cfg: Config) -> bool:

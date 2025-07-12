@@ -4,7 +4,6 @@ import argparse
 import csv
 import os
 import sqlite3
-from dataclasses import dataclass
 from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Iterable, List, Literal, Optional, TYPE_CHECKING
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
 import requests
 from geo import distance_km
 from config import Config
+from models import FlightOffer
 
 CFG = Config()
 
@@ -38,21 +38,6 @@ BASE_HEADERS = {
 
 class AviasalesFetcherError(Exception):
     ...
-
-
-@dataclass(slots=True)
-class FlightOffer:
-    origin: str
-    destination: str
-    depart_date: date
-    return_date: Optional[date]
-    price_pln: Decimal
-    airline: str
-    stops: int
-    total_flight_time_h: float
-    max_layover_h: float
-    deep_link: str
-    fetched_at: datetime
 
 
 class AviasalesFetcher:
@@ -161,7 +146,7 @@ class AviasalesFetcher:
 
         offers: List[FlightOffer] = []
         for item in payload.get("data", []):
-            if int(item.get("number_of_changes", item.get("stops", 0))) > stop_limit:
+            if int(item.get("number_of_changes", 0)) > stop_limit:
                 continue
             fetched_raw = item.get("found_at") or ""
             if fetched_raw and not self._within_age(fetched_raw, max_age_h):
@@ -185,10 +170,10 @@ class AviasalesFetcher:
                 fetched = (
                     datetime.fromisoformat(fetched_raw.replace("Z", "+00:00"))
                     if fetched_raw
-                    else datetime.now(timezone.utc)
+                    else datetime.utcnow()
                 )
             except Exception:
-                fetched = datetime.now(timezone.utc)
+                fetched = datetime.utcnow()
             layover = float(item.get("max_layover_h", 0.0))
             if layover and layover > CFG.max_layover_h:
                 continue
@@ -200,7 +185,7 @@ class AviasalesFetcher:
                     return_date=ret_date,
                     price_pln=Decimal(str(item.get("price", 0.0))),
                     airline=item.get("airline", ""),
-                    stops=int(item.get("stops", 0)),
+                    stops=int(item.get("number_of_changes", 0)),
                     total_flight_time_h=float(item.get("total_flight_time_h", 0.0)),
                     max_layover_h=float(item.get("max_layover_h", 0.0)),
                     deep_link=self._build_url(link),
