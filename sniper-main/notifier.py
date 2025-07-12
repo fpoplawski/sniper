@@ -4,6 +4,7 @@ import ssl
 from email.mime.text import MIMEText
 from config import Config
 
+# Load configuration once
 cfg = Config.from_json()
 
 bot = Bot(token=cfg.telegram_bot_token)
