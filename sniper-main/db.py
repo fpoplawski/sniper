@@ -30,24 +30,24 @@ def insert_offer(offer: FlightOffer, db_path: str = DB_FILE) -> int:
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO offers_raw
-        (origin, destination, depart_date, return_date,
-         price_pln, airline, stops, total_time_h, layover_h,
-         deep_link, fetched_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO offers_raw(
+            origin, destination, depart_date, return_date, price_pln, airline,
+            stops, total_time_h, layover_h, deep_link, fetched_at, alert_sent
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
         """,
         (
             offer.origin,
             offer.destination,
             offer.depart_date.isoformat(),
             offer.return_date.isoformat() if offer.return_date else None,
-            offer.price_pln,
+            float(offer.price_pln),
             offer.airline,
             offer.stops,
             offer.total_flight_time_h,
             offer.max_layover_h,
             offer.deep_link,
             offer.fetched_at.isoformat(),
+            int(offer.alert_sent),
         ),
     )
     conn.commit()
