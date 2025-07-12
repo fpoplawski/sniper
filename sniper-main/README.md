@@ -42,3 +42,20 @@ Add a cron entry to execute it every morning at 08:00:
 ```
 
 Adjust the path to match your environment and configuration file location.
+
+## Uruchomienie
+
+```bash
+# 1. Klon repo + środowisko
+git clone https://github.com/fpoplawski/sniper.git
+cd sniper
+python -m venv .venv && source .venv/bin/activate
+pip install -r sniper-main/requirements.txt
+
+# 2. Konfiguracja
+cp config.example.json config.json      # uzupełnij swoje parametry
+cp .env.example .env                    # tokeny/API‑keys
+
+# 3. Start harmonogramu
+python sniper-main/tasks.py
+```
