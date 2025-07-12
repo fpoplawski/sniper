@@ -8,21 +8,19 @@ from datetime import date, datetime, timezone, timedelta
 from decimal import Decimal
 from typing import Iterable, List, Literal, Optional, TYPE_CHECKING
 
-try:
-    from dotenv import load_dotenv  # type: ignore
-    load_dotenv()
-except ModuleNotFoundError:
-    pass
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from models import FlightOffer
+from config import Config
+from geo import distance_km
+
+CFG = Config.from_json()
 
 if TYPE_CHECKING:
     from tabulate import tabulate  # noqa: F401
-
-import requests
-from geo import distance_km
-from config import Config
-from models import FlightOffer
-
-CFG = Config()
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
