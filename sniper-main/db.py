@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
+import pathlib
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Optional
@@ -9,10 +10,10 @@ from typing import Optional
 from models import FlightOffer
 
 
-# Default paths
-DB_FILE = os.path.join(os.path.dirname(__file__), "aviasales_offers.db")
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-SCHEMA_FILE = os.path.join(BASE_DIR, "schema.sql")
+# Default paths – relative to the repository root
+REPO_DIR = pathlib.Path(__file__).resolve().parent.parent
+DB_FILE = os.getenv("SNIPER_DB", str(REPO_DIR / "aviasales_offers.db"))
+SCHEMA_FILE = str(REPO_DIR / "schema.sql")
 
 
 def init_db(db_path: str = DB_FILE, schema_path: str = SCHEMA_FILE) -> None:
