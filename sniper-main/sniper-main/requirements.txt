@@ -1,0 +1,9 @@
+requests
+tabulate
+python-dotenv==1.0.*
+pandas==2.*
+python-telegram-bot==20.7
+
+apscheduler==3.10.*
+python-telegram-bot==20.*
+python-dotenv==1.*
