@@ -6,7 +6,7 @@ from typing import Mapping, Any, List
 from datetime import datetime, timezone, date
 from decimal import Decimal
 
-from geo import distance_km
+from .geo import distance_km
 
 
 # ────────────────────────────────────────────────────────────────

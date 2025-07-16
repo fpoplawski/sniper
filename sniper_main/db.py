@@ -7,7 +7,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from models import FlightOffer
+from .models import FlightOffer
 
 
 # Default paths – relative to the repository root

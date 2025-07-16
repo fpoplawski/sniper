@@ -5,10 +5,10 @@
 """
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-import daily_runner
-import aggregator
-import daily_report
-from config import Config
+from . import daily_runner
+from . import aggregator
+from . import daily_report
+from .config import Config
 
 sched = BlockingScheduler(timezone="UTC")
 

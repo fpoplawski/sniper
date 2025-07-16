@@ -5,11 +5,11 @@ from datetime import date
 from decimal import Decimal
 from typing import List
 
-from aviasales_fetcher import AviasalesFetcher
-from config import Config
-from steal_engine import is_steal
-from notifier import send_telegram
-from db import (
+from .aviasales_fetcher import AviasalesFetcher
+from .config import Config
+from .steal_engine import is_steal
+from .notifier import send_telegram
+from .db import (
     insert_offer,
     mark_alert_sent,
     get_last_30d_avg,

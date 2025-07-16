@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from collections import defaultdict
 
-from db import DB_FILE, upsert_daily_avg
+from .db import DB_FILE, upsert_daily_avg
 
 
 def aggregate(db_path: str = DB_FILE) -> None:

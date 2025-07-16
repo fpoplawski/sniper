@@ -1,13 +1,10 @@
 import os
-import sys
 import sqlite3
 from datetime import datetime, timezone, date
 from decimal import Decimal
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from db import init_db, insert_offer
-from models import FlightOffer
+from sniper_main.db import init_db, insert_offer
+from sniper_main.models import FlightOffer
 
 
 def make_offer() -> FlightOffer:
@@ -28,7 +25,13 @@ def make_offer() -> FlightOffer:
 
 def test_insert_offer_deduplicates(tmp_path):
     db_file = tmp_path / "test.db"
-    schema_path = os.path.join(os.path.dirname(__file__), "..", "..", "schema.sql")
+    schema_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "sniper-main",
+        "schema.sql",
+    )
     init_db(str(db_file), schema_path=schema_path)
 
     offer = make_offer()
