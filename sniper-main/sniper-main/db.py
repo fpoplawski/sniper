@@ -29,6 +29,29 @@ def insert_offer(offer: FlightOffer, db_path: str = DB_FILE) -> int:
     """Insert *offer* into ``offers_raw`` and return its row id."""
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id FROM offers_raw
+         WHERE origin=? AND destination=? AND depart_date=? AND return_date IS ?
+           AND price_pln=? AND airline=? AND stops=? AND deep_link=?
+        """,
+        (
+            offer.origin,
+            offer.destination,
+            offer.depart_date.isoformat(),
+            offer.return_date.isoformat() if offer.return_date else None,
+            float(offer.price_pln),
+            offer.airline,
+            offer.stops,
+            offer.deep_link,
+        ),
+    )
+    existing = cur.fetchone()
+    if existing:
+        conn.close()
+        return existing[0]
+
     cur.execute(
         """
         INSERT INTO offers_raw(

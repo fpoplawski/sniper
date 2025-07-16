@@ -15,6 +15,19 @@ CREATE INDEX IF NOT EXISTS idx_offers_route
 CREATE INDEX IF NOT EXISTS idx_offers_alert
   ON offers_raw (alert_sent);
 
+-- prevent duplicate offers
+CREATE UNIQUE INDEX IF NOT EXISTS idx_offers_unique
+  ON offers_raw (
+    origin,
+    destination,
+    depart_date,
+    return_date,
+    price_pln,
+    airline,
+    stops,
+    deep_link
+  );
+
 -- offers_agg: średnie 30‑dniowe
 CREATE TABLE IF NOT EXISTS offers_agg (
   origin TEXT, destination TEXT,
