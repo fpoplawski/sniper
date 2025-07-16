@@ -19,15 +19,18 @@ def compute_baseline(db_path: str, origin: str, dest: str, days: int = 90) -> fl
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     cur.execute(
-        """
-        SELECT MIN(price_pln)
-          FROM offers_raw
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='offers_raw'"
+    )
+    table = "offers_raw" if cur.fetchone() else "flights"
+    price_col = "price_pln" if table == "offers_raw" else "price"
+    query = f"""
+        SELECT MIN({price_col})
+          FROM {table}
          WHERE origin=? AND destination=?
            AND date(fetched_at) >= date('now', ?)
          GROUP BY date(fetched_at)
-        """,
-        (origin, dest, f"-{days} day"),
-    )
+    """
+    cur.execute(query, (origin, dest, f"-{days} day"))
     prices = [row[0] for row in cur.fetchall() if row[0] is not None]
     conn.close()
     if not prices:
@@ -37,7 +40,7 @@ def compute_baseline(db_path: str, origin: str, dest: str, days: int = 90) -> fl
 
 def compute_deal_score(row: Mapping[str, Any], baseline: float) -> float:
     """Zwróć ważony score oferty w porównaniu z baseline (im wyższy, tym lepiej)."""
-    price = float(row.get("price_pln", 0.0))
+    price = float(row.get("price_pln") or row.get("price", 0.0))
     if price <= 0 or baseline <= 0:
         return 0.0
 
@@ -66,7 +69,7 @@ def compute_deal_score(row: Mapping[str, Any], baseline: float) -> float:
 
 def is_good(row: Mapping[str, Any], cfg: Mapping[str, Any], baseline: float) -> bool:
     """Proste kryterium „dobra okazja” (maks. cena, cena/km, score minimalny)."""
-    price = float(row.get("price_pln", 0.0))
+    price = float(row.get("price_pln") or row.get("price", 0.0))
     if price <= 0 or baseline <= 0:
         return False
 
@@ -81,6 +84,38 @@ def is_good(row: Mapping[str, Any], cfg: Mapping[str, Any], baseline: float) -> 
     score = compute_deal_score(row, baseline)
     if score < cfg.get("min_score", 0.0):
         return False
+    return True
+
+
+def is_good_composite(row: Mapping[str, Any], cfg: Mapping[str, Any], baseline: float) -> bool:
+    """Composite criterion used in tests combining several checks."""
+    price = float(row.get("price", row.get("price_pln", 0.0)))
+    if price <= 0 or baseline <= 0:
+        return False
+
+    if cfg.get("max_price") and price > cfg["max_price"]:
+        return False
+
+    dist = distance_km(row.get("origin", ""), row.get("destination", ""))
+    price_per_km = price / dist if dist else float("inf")
+    if cfg.get("max_price_per_km") and price_per_km > cfg["max_price_per_km"]:
+        return False
+
+    trip_days = row.get("trip_days")
+    if trip_days is not None:
+        if cfg.get("min_trip_days") and trip_days < cfg["min_trip_days"]:
+            return False
+        if cfg.get("max_trip_days") and trip_days > cfg["max_trip_days"]:
+            return False
+
+    if cfg.get("excluded_airlines") and row.get("airline") in cfg["excluded_airlines"]:
+        return False
+
+    diff_pct = (baseline - price) / baseline * 100.0
+    score = 1.5 * diff_pct + (5.0 - price_per_km)
+    if score < cfg.get("min_composite_score", 0.0):
+        return False
+
     return True
 
 
@@ -126,6 +161,7 @@ def travel_days(depart_date: date, return_date: date | None) -> int:
 __all__ = [
     "compute_baseline",
     "compute_deal_score",
+    "is_good_composite",
     "is_good",
     "filter_deals_by_score",
     "travel_days",
