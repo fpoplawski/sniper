@@ -1,15 +1,16 @@
 import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 import sqlite3
 from datetime import datetime, timezone, timedelta
 from tempfile import NamedTemporaryFile
 
 import pytest
 
-from deal_filter import compute_baseline, compute_deal_score, is_good_composite
-from geo import distance_km
+from sniper_main.deal_filter import (
+    compute_baseline,
+    compute_deal_score,
+    is_good_composite,
+)
+from sniper_main.geo import distance_km
 
 
 def setup_db(records):

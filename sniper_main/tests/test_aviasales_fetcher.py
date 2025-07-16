@@ -1,7 +1,5 @@
 import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 import sqlite3
 from datetime import datetime, timezone, timedelta
 from tempfile import NamedTemporaryFile
@@ -9,8 +7,8 @@ from unittest.mock import patch, Mock
 
 import pytest
 
-from aviasales_fetcher import AviasalesFetcher, main
-from deal_filter import compute_deal_score
+from sniper_main.aviasales_fetcher import AviasalesFetcher, main
+from sniper_main.deal_filter import compute_deal_score
 
 
 def make_payload():
@@ -117,7 +115,7 @@ def test_skip_incomplete_rows(mock_get):
     assert isinstance(offers[0].fetched_at, datetime)
 
 
-@patch("aviasales_fetcher.AviasalesFetcher.search_prices")
+@patch("sniper_main.aviasales_fetcher.AviasalesFetcher.search_prices")
 def test_cli_return_date_argument(mock_search, monkeypatch, capsys):
     os.environ["TP_TOKEN"] = "x"
     mock_search.return_value = []

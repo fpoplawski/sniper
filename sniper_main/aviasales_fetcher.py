@@ -7,8 +7,8 @@ import sqlite3
 import requests
 from dotenv import load_dotenv
 
-from config import Config
-from models import FlightOffer
+from .config import Config
+from .models import FlightOffer
 
 load_dotenv()
 CFG = Config.from_json()

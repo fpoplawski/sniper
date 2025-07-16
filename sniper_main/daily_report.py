@@ -3,8 +3,8 @@ from __future__ import annotations
 import sqlite3
 import html
 
-from db import DB_FILE
-from notifier import send_email_daily
+from .db import DB_FILE
+from .notifier import send_email_daily
 
 
 def send_daily_report(db_path: str = DB_FILE) -> None:
