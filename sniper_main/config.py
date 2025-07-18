@@ -1,5 +1,7 @@
 from __future__ import annotations
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
+from pydantic.dataclasses import dataclass
+from pydantic import model_validator
 from decimal import Decimal
 import json, os, pathlib
 from typing import Any
@@ -18,6 +20,9 @@ class Config:
     min_trip_days: int = 5
     max_trip_days: int = 14
     steal_threshold: float = 0.20
+    combine_ow: bool = True
+    alert_pair: bool = True
+    pair_steal_threshold: float | None = None
     max_stops: int = 1
     max_layover_h: float = 6.0
     max_total_time_h: float = 30.0
@@ -40,6 +45,16 @@ class Config:
     tp_token: str | None = os.getenv("TP_TOKEN")   # ← musi tu być os.getenv
     tp_marker: str | None = os.getenv("TP_MARKER")
     domain: str = "https://www.aviasales.com"
+
+    @model_validator(mode="after")
+    def _validate_ranges(self):
+        if self.min_trip_days > self.max_trip_days:
+            raise ValueError("min_trip_days > max_trip_days")
+        for name in ("steal_threshold", "pair_steal_threshold"):
+            val = getattr(self, name, None)
+            if val is not None and not (0 < val < 0.9):
+                raise ValueError(f"{name} musi być w (0,0.9)")
+        return self
 
     @classmethod
     def from_json(cls, path: str | pathlib.Path = _CFG_PATH) -> "Config":
