@@ -1,5 +1,6 @@
 requests
 tabulate
+pydantic==2.*
 python-dotenv==1.0.*
 pandas==2.*
 python-telegram-bot==20.7

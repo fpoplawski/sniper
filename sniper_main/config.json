@@ -33,9 +33,12 @@
   "min_trip_days": 2,
   "max_trip_days": 30,
   "max_layover_h": 100.0,
-  "steal_threshold": 0.0,
+  "steal_threshold": 0.20,
   "max_stops": 2,
   "poll_interval_h": 6,
   "telegram_bot_token": "8165648170:AAErTvHw4WfjPQ8D4BJCzclC1-goD1-WWZk",
-  "telegram_instant": true
+  "telegram_instant": true,
+  "combine_ow": true,
+  "alert_pair": true,
+  "pair_steal_threshold": 0.20
 }
