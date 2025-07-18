@@ -35,3 +35,20 @@ CREATE TABLE IF NOT EXISTS offers_agg (
   mean_price NUMERIC,
   PRIMARY KEY (origin, destination, day)
 );
+
+-- ① Tabela parowanych pseudo-RT (dwie nogi OW)
+CREATE TABLE IF NOT EXISTS offers_pair (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    out_id          INTEGER NOT NULL REFERENCES offers_raw(id) ON DELETE CASCADE,
+    in_id           INTEGER NOT NULL REFERENCES offers_raw(id) ON DELETE CASCADE,
+    origin          TEXT NOT NULL,
+    destination     TEXT NOT NULL,
+    depart_date     DATE NOT NULL,
+    return_date     DATE NOT NULL,
+    price_total_pln NUMERIC NOT NULL,
+    steal_pair      INTEGER NOT NULL DEFAULT 0,
+    fetched_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(out_id, in_id)
+);
+CREATE INDEX IF NOT EXISTS pair_dates_idx
+    ON offers_pair(origin,destination,depart_date);
