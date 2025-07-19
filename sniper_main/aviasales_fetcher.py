@@ -4,6 +4,8 @@ import datetime as dt
 from decimal import Decimal
 import sqlite3
 import os
+import time
+import logging
 
 import requests
 from dotenv import load_dotenv
@@ -12,9 +14,16 @@ from .models import FlightOffer
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
 
-class AviasalesFetcherError(RuntimeError):
-    """Błąd w komunikacji z Travelpayouts API."""
+
+
+class HttpError(Exception):
+    """Communication error with the Travelpayouts API."""
+
+
+class ParseError(Exception):
+    """Failed to parse a response from the Travelpayouts API."""
 
 
 class AviasalesFetcher:
@@ -65,18 +74,45 @@ class AviasalesFetcher:
         if self.marker:
             url += f"&marker={self.marker}"
 
-        resp = requests.get(url, timeout=15, headers={"Accept-Encoding": "gzip"})
-        if resp.status_code != 200:
-            raise AviasalesFetcherError(
-                f"HTTP {resp.status_code} – {resp.text[:120]}"
-            )
+        resp = None
+        delay = 1.0
+        for attempt in range(3):
+            try:
+                resp = requests.get(
+                    url,
+                    timeout=10,
+                    headers={"Accept-Encoding": "gzip"},
+                )
+            except requests.RequestException as exc:
+                if attempt < 2:
+                    time.sleep(delay)
+                    delay *= 2
+                    continue
+                logger.error("Request failed: %s", exc)
+                raise HttpError(str(exc)) from exc
 
-        data = resp.json()
+            if resp.status_code == 200:
+                break
+            if attempt < 2:
+                time.sleep(delay)
+                delay *= 2
+                continue
+            logger.error("HTTP %s – %s", resp.status_code, resp.text[:120])
+            raise HttpError(f"HTTP {resp.status_code} – {resp.text[:120]}")
+
+        try:
+            data = resp.json()
+        except Exception as exc:  # json decoding
+            logger.error("Invalid JSON: %s", exc)
+            raise ParseError(str(exc)) from exc
         if not data.get("success"):
-            raise AviasalesFetcherError(f"API error: {data.get('error')}")
+            logger.error("API error: %s", data.get("error"))
+            raise HttpError(f"API error: {data.get('error')}")
 
         offers = [self._to_offer(item) for item in data.get("data", [])]
-        return [off for off in offers if off]
+        result = [off for off in offers if off]
+        logger.info("Fetched %d offers", len(result))
+        return result
 
     def save_offers(self, offers: list[FlightOffer], backend: str, *, path: str) -> None:
         """Persist offers to a SQLite DB (used in tests)."""
@@ -181,4 +217,4 @@ def main(argv: list[str] | None = None) -> None:
             print(off)
 
 
-__all__ = ["AviasalesFetcher", "AviasalesFetcherError", "main"]
+__all__ = ["AviasalesFetcher", "HttpError", "ParseError", "main"]
