@@ -3,7 +3,10 @@ from __future__ import annotations
 import logging
 from datetime import date
 from decimal import Decimal
-from typing import List
+from typing import List, Optional
+import time
+
+import click
 
 from .aviasales_fetcher import AviasalesFetcher
 from .config import Config
@@ -46,7 +49,7 @@ def travel_days(dep: date | None, ret: date | None) -> int:
 # ────────────────────────────────────────────────────────────────
 
 
-def run_once() -> None:
+def run_once(dep_date: Optional[str] = None) -> None:
     total_inserted: List[int] = []
 
     for origin in cfg.origins or []:
@@ -56,7 +59,7 @@ def run_once() -> None:
                 offers_iter = fetcher.search_prices(
                     origin,
                     dest,
-                    departure_at=None,
+                    departure_at=dep_date,
                     return_at=None,
                     currency=cfg.currency,
                 )
@@ -114,5 +117,54 @@ def main() -> None:
         logging.exception("daily_runner failed")
 
 
+@click.group()
+def cli() -> None:
+    """Command line interface."""
+
+
+@cli.command()
+@click.option("--once", is_flag=True, help="Run a single iteration and exit")
+@click.option("--date", help="Departure date (YYYY-MM-DD) for manual tests")
+def run(once: bool, date: Optional[str]) -> None:
+    """Fetch new offers and process them."""
+    if once:
+        run_once(date)
+    else:
+        while True:
+            run_once(date)
+            time.sleep(cfg.poll_interval_h * 3600)
+
+
+@cli.command()
+@click.option("--date", help="Departure date (YYYY-MM-DD) for manual tests")
+def fetch(date: Optional[str]) -> None:
+    """Fetch offers only and print them."""
+    for origin in cfg.origins or []:
+        for dest in cfg.destinations or []:
+            logging.info("Fetching: %s ➔ %s", origin, dest)
+            try:
+                offers = fetcher.search_prices(
+                    origin,
+                    dest,
+                    departure_at=date,
+                    return_at=None,
+                    currency=cfg.currency,
+                )
+            except Exception as exc:
+                logging.warning("  Failed to fetch %s->%s: %s", origin, dest, exc)
+                continue
+            for off in offers:
+                click.echo(off)
+
+
+@cli.command()
+def report() -> None:
+    """Aggregate history and send daily report."""
+    from . import aggregator, daily_report
+
+    aggregator.aggregate()
+    daily_report.send_daily_report()
+
+
 if __name__ == "__main__":
-    main()
+    cli()
