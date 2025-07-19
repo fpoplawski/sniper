@@ -8,6 +8,7 @@ from typing import List
 from .aviasales_fetcher import AviasalesFetcher
 from .config import Config
 from .steal_engine import is_steal
+from .pair_engine import process_outbound
 from .notifier import send_telegram
 from .db import (
     insert_offer,
@@ -27,6 +28,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s: %(message)s",
 )
+logger = logging.getLogger(__name__)
 
 # ────────────────────────────────────────────────────────────────
 # Helper
@@ -82,6 +84,11 @@ def run_once() -> None:
                 # ── Zapis do bazy ────────────────────────────
                 offer_id = insert_offer(off, db_path=DB_FILE)
                 total_inserted.append(offer_id)
+
+                # ── Parowanie OW ────────────────────────────
+                pair_steals = process_outbound(off, offer_id)
+                if pair_steals:
+                    logger.info("Utworzono %d STEAL par", len(pair_steals))
 
                 # ── STEAL? ───────────────────────────────────
                 if is_steal(off, cfg):
