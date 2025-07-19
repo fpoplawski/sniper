@@ -3,15 +3,14 @@ from __future__ import annotations
 import datetime as dt
 from decimal import Decimal
 import sqlite3
+import os
 
 import requests
 from dotenv import load_dotenv
 
-from .config import Config
 from .models import FlightOffer
 
 load_dotenv()
-CFG = Config.from_json()
 
 
 class AviasalesFetcherError(RuntimeError):
@@ -30,8 +29,8 @@ class AviasalesFetcher:
         base_url: str = "https://api.travelpayouts.com/aviasales/v3",
         domain: str = "https://www.aviasales.com",
     ) -> None:
-        self.token = token or CFG.tp_token or ""
-        self.marker = marker or CFG.tp_marker or ""
+        self.token = token or os.getenv("TP_TOKEN", "")
+        self.marker = marker or os.getenv("TP_MARKER", "")
         self.base_url = base_url.rstrip("/")
         self.domain = domain.rstrip("/")
 

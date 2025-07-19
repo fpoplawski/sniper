@@ -1,71 +1,49 @@
 from __future__ import annotations
-from dataclasses import asdict
-from pydantic.dataclasses import dataclass
-from pydantic import model_validator
-from decimal import Decimal
-import json, os, pathlib
-from typing import Any
-_CFG_PATH = pathlib.Path(os.getenv("SNIPER_CONFIG", "config.json"))
+
+import os
+from functools import lru_cache
+from typing import List
+
 from dotenv import load_dotenv
-load_dotenv()          # ← bez find_dotenv()
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
+
+load_dotenv()
 
 
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
 
-@dataclass(slots=True)
-class Config:
-    # === parametry filtrowania / logiki STEAL ===
-    origins: list[str] = None
-    destinations: list[str] = None
-    one_way: bool = False
-    min_trip_days: int = 5
-    max_trip_days: int = 14
-    steal_threshold: float = 0.20
-    combine_ow: bool = True
-    alert_pair: bool = True
-    pair_steal_threshold: float | None = None
-    max_stops: int = 1
-    max_layover_h: float = 6.0
-    max_total_time_h: float = 30.0
-    currency: str = "PLN"
-    poll_interval_h: int = 6
+    telegram_token: str = Field(..., alias="TELEGRAM_BOT_TOKEN")
+    poll_interval_h: int = Field(..., alias="POLL_INTERVAL_H")
+    airports: List[str] = Field(default_factory=list, alias="AIRPORTS")
 
-    # === powiadomienia ===
-    telegram_instant: bool = True
-    telegram_bot_token: str | None = None
-    telegram_chat_id: str | None = None
-    email_daily: bool = True
-    smtp_host: str | None = None
-    smtp_port: int | None = 465
-    smtp_user: str | None = None
-    smtp_pass: str | None = None
-    email_from: str | None = None
-    email_to: str | None = None
-
-    # === Aviasales ===
-    tp_token: str | None = os.getenv("TP_TOKEN")   # ← musi tu być os.getenv
-    tp_marker: str | None = os.getenv("TP_MARKER")
-    domain: str = "https://www.aviasales.com"
-
-    @model_validator(mode="after")
-    def _validate_ranges(self):
-        if self.min_trip_days > self.max_trip_days:
-            raise ValueError("min_trip_days > max_trip_days")
-        for name in ("steal_threshold", "pair_steal_threshold"):
-            val = getattr(self, name, None)
-            if val is not None and not (0 < val < 0.9):
-                raise ValueError(f"{name} musi być w (0,0.9)")
-        return self
-
+    @field_validator("telegram_token")
     @classmethod
-    def from_json(cls, path: str | pathlib.Path = _CFG_PATH) -> "Config":
-        data: dict[str, Any] = {}
-        if pathlib.Path(path).exists():
-            with open(path, encoding="utf-8") as fh:
-                data = json.load(fh)
-        # dataclass pola → domyślne, nadpisz z JSON
-        defaults = asdict(cls())        # type: ignore[arg-type]
-        defaults.update(data)
-        filtered = {k: defaults.get(k) for k in cls.__dataclass_fields__}
-        return cls(**filtered)
+    def _token_non_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("TELEGRAM_BOT_TOKEN must be a non-empty string")
+        return v
 
-__all__ = ["Config"]
+    @field_validator("poll_interval_h")
+    @classmethod
+    def _poll_positive(cls, v: int) -> int:
+        if v <= 0:
+            raise ValueError("POLL_INTERVAL_H must be greater than 0")
+        return v
+
+    @field_validator("airports", mode="before")
+    @classmethod
+    def _split_airports(cls, v):
+        if isinstance(v, str):
+            return [a.strip() for a in v.split(",") if a.strip()]
+        return v
+
+
+@lru_cache()
+def get_settings() -> Settings:
+    """Return application settings loaded from the environment."""
+    return Settings()  # type: ignore[call-arg]
+
+
+__all__ = ["Settings", "get_settings"]

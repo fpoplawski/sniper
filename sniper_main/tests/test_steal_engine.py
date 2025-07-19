@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
-from sniper_main.config import Config
 from sniper_main import steal_engine
 
 
@@ -10,6 +9,11 @@ class Offer:
     origin: str
     destination: str
     price_pln: Decimal
+
+
+@dataclass(slots=True)
+class Config:
+    steal_threshold: float = 0.2
 
 
 def test_is_steal_true(monkeypatch):

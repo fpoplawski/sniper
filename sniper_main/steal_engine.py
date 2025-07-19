@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from .config import Config
+from typing import Any
 from .db import get_last_30d_avg
 from .models import FlightOffer
 
 
-def is_steal(offer: FlightOffer, cfg: Config) -> bool:
+def is_steal(offer: FlightOffer, cfg: Any) -> bool:
     """Return ``True`` if *offer* price is a steal compared to recent average.
 
     Example:
