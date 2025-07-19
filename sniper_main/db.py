@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import logging
 import os
 import sqlite3
 import pathlib
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List, Tuple
 
 from .models import FlightOffer
 
@@ -14,112 +15,152 @@ from .models import FlightOffer
 REPO_DIR = pathlib.Path(__file__).resolve().parent.parent
 DB_FILE = os.getenv("SNIPER_DB", str(REPO_DIR / "aviasales_offers.db"))
 SCHEMA_FILE = str(REPO_DIR / "schema.sql")
+SCHEMA_VERSION = 1
+
+logger = logging.getLogger(__name__)
+
+
+def migrate(db_path: str = DB_FILE, schema_path: str = SCHEMA_FILE) -> None:
+    """Run pending migrations on the database."""
+    logger.info("Running migrations for %s", db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
+        )
+        cur = conn.execute("SELECT version FROM schema_version")
+        row = cur.fetchone()
+        current = row[0] if row else 0
+        if current < SCHEMA_VERSION:
+            logger.info("Applying schema version %s", SCHEMA_VERSION)
+            with open(schema_path, "r", encoding="utf-8") as fh:
+                conn.executescript(fh.read())
+            if row:
+                conn.execute(
+                    "UPDATE schema_version SET version=?", (SCHEMA_VERSION,)
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO schema_version(version) VALUES (?)",
+                    (SCHEMA_VERSION,),
+                )
+            conn.commit()
 
 
 def init_db(db_path: str = DB_FILE, schema_path: str = SCHEMA_FILE) -> None:
     """Initialize SQLite database using *schema_path*."""
-    conn = sqlite3.connect(db_path)
-    with open(schema_path, "r", encoding="utf-8") as fh:
-        conn.executescript(fh.read())
-    conn.commit()
-    conn.close()
+    logger.info("Initializing database at %s", db_path)
+    with sqlite3.connect(db_path) as conn:
+        with open(schema_path, "r", encoding="utf-8") as fh:
+            conn.executescript(fh.read())
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
+        )
+        conn.execute("DELETE FROM schema_version")
+        conn.execute(
+            "INSERT INTO schema_version(version) VALUES (?)",
+            (SCHEMA_VERSION,),
+        )
 
 
 def insert_offer(offer: FlightOffer, db_path: str = DB_FILE) -> int:
     """Insert *offer* into ``offers_raw`` and return its row id."""
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-
-    cur.execute(
-        """
-        SELECT id FROM offers_raw
-         WHERE origin=? AND destination=? AND depart_date=? AND return_date IS ?
-           AND price_pln=? AND airline=? AND stops=? AND deep_link=?
-        """,
-        (
-            offer.origin,
-            offer.destination,
-            offer.depart_date.isoformat(),
-            offer.return_date.isoformat() if offer.return_date else None,
-            float(offer.price_pln),
-            offer.airline,
-            offer.stops,
-            offer.deep_link,
-        ),
+    logger.info(
+        "Inserting offer %s ➔ %s on %s",
+        offer.origin,
+        offer.destination,
+        offer.depart_date,
     )
-    existing = cur.fetchone()
-    if existing:
-        conn.close()
-        return existing[0]
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.cursor()
 
-    cur.execute(
-        """
-        INSERT INTO offers_raw(
-            origin, destination, depart_date, return_date, price_pln, airline,
-            stops, total_time_h, layover_h, deep_link, fetched_at, alert_sent
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-        """,
-        (
-            offer.origin,
-            offer.destination,
-            offer.depart_date.isoformat(),
-            offer.return_date.isoformat() if offer.return_date else None,
-            float(offer.price_pln),
-            offer.airline,
-            offer.stops,
-            offer.total_flight_time_h,
-            offer.max_layover_h,
-            offer.deep_link,
-            offer.fetched_at.isoformat(),
-            int(offer.alert_sent),
-        ),
-    )
-    conn.commit()
-    row_id = cur.lastrowid
-    conn.close()
-    return row_id
+        cur.execute(
+            """
+            SELECT id FROM offers_raw
+             WHERE origin=? AND destination=? AND depart_date=? AND return_date IS ?
+               AND price_pln=? AND airline=? AND stops=? AND deep_link=?
+            """,
+            (
+                offer.origin,
+                offer.destination,
+                offer.depart_date.isoformat(),
+                offer.return_date.isoformat() if offer.return_date else None,
+                float(offer.price_pln),
+                offer.airline,
+                offer.stops,
+                offer.deep_link,
+            ),
+        )
+        existing = cur.fetchone()
+        if existing:
+            return existing[0]
+
+        cur.execute(
+            """
+            INSERT INTO offers_raw(
+                origin, destination, depart_date, return_date, price_pln, airline,
+                stops, total_time_h, layover_h, deep_link, fetched_at, alert_sent
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            (
+                offer.origin,
+                offer.destination,
+                offer.depart_date.isoformat(),
+                offer.return_date.isoformat() if offer.return_date else None,
+                float(offer.price_pln),
+                offer.airline,
+                offer.stops,
+                offer.total_flight_time_h,
+                offer.max_layover_h,
+                offer.deep_link,
+                offer.fetched_at.isoformat(),
+                int(offer.alert_sent),
+            ),
+        )
+        conn.commit()
+        row_id = cur.lastrowid
+        return row_id
 
 
 def mark_alert_sent(offer_id: int, db_path: str = DB_FILE) -> None:
     """Mark offer with ``offer_id`` as having an alert sent."""
-    conn = sqlite3.connect(db_path)
-    conn.execute("UPDATE offers_raw SET alert_sent=1 WHERE id=?", (offer_id,))
-    conn.commit()
-    conn.close()
+    logger.info("Marking alert sent for offer %s", offer_id)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("UPDATE offers_raw SET alert_sent=1 WHERE id=?", (offer_id,))
+        conn.commit()
 
 
 def get_last_30d_avg(origin: str, dest: str, db_path: str = DB_FILE) -> Optional[Decimal]:
     """Return average price for ``origin``-``dest`` from the last 30 days."""
-    conn = sqlite3.connect(db_path)
-    cur = conn.execute(
-        """
-        SELECT AVG(mean_price)
-        FROM offers_agg
-        WHERE origin=? AND destination=?
-          AND date(day) >= date('now', '-30 day')
-        """,
-        (origin, dest),
-    )
-    val = cur.fetchone()[0]
-    conn.close()
+    logger.info("Querying 30-day average for %s-%s", origin, dest)
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.execute(
+            """
+            SELECT AVG(mean_price)
+            FROM offers_agg
+            WHERE origin=? AND destination=?
+              AND date(day) >= date('now', '-30 day')
+            """,
+            (origin, dest),
+        )
+        val = cur.fetchone()[0]
     return Decimal(str(val)) if val is not None else None
 
 
 def upsert_daily_avg(origin: str, dest: str, mean_price: Decimal | float, db_path: str = DB_FILE) -> None:
     """Insert or update today's average price for ``origin``-``dest``."""
     day_str = datetime.utcnow().replace(tzinfo=timezone.utc).date().isoformat()
-    conn = sqlite3.connect(db_path)
-    conn.execute(
-        """
-        INSERT INTO offers_agg (origin, destination, day, mean_price)
-        VALUES (?,?,?,?)
-        ON CONFLICT(origin, destination, day)
-        DO UPDATE SET mean_price=excluded.mean_price
-        """,
-        (origin, dest, day_str, str(mean_price)),
-    )
-    conn.commit()
-    conn.close()
+    logger.info("Upserting daily avg for %s-%s", origin, dest)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            """
+            INSERT INTO offers_agg (origin, destination, day, mean_price)
+            VALUES (?,?,?,?)
+            ON CONFLICT(origin, destination, day)
+            DO UPDATE SET mean_price=excluded.mean_price
+            """,
+            (origin, dest, day_str, str(mean_price)),
+        )
+        conn.commit()
 
 
 def insert_pair(
@@ -145,15 +186,15 @@ def insert_pair(
     ON CONFLICT(out_id,in_id) DO NOTHING
     RETURNING id;
     """
-    conn = sqlite3.connect(db_path)
-    cur = conn.execute(
-        sql,
-        (out_id, in_id, origin, dest, depart, ret, price_total, int(steal)),
-    )
-    row = cur.fetchone()
-    conn.commit()
-    conn.close()
-    return int(row[0]) if row else -1
+    logger.info("Inserting pair %s/%s", out_id, in_id)
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.execute(
+            sql,
+            (out_id, in_id, origin, dest, depart, ret, price_total, int(steal)),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return int(row[0]) if row else -1
 
 
 def find_returns(
@@ -164,7 +205,7 @@ def find_returns(
     window_end: str,
     max_stops: int,
     db_path: str = DB_FILE,
-):
+) -> List[Tuple]:
     """Find return legs for a given offer within a time window."""
 
     q = """
@@ -175,13 +216,13 @@ def find_returns(
        AND departure_at BETWEEN ? AND ?
        AND stops <= ?
     """
-    conn = sqlite3.connect(db_path)
-    rows = conn.execute(
-        q,
-        (dest, orig, window_start, window_end, max_stops),
-    ).fetchall()
-    conn.close()
-    return rows
+    logger.info("Searching return legs for offer %s", out_offer_id)
+    with sqlite3.connect(db_path) as conn:
+        rows = conn.execute(
+            q,
+            (dest, orig, window_start, window_end, max_stops),
+        ).fetchall()
+        return rows
 
 
 __all__ = [
@@ -191,5 +232,6 @@ __all__ = [
     "get_last_30d_avg",
     "upsert_daily_avg",
     "insert_pair",
+    "migrate",
     "find_returns",
 ]
