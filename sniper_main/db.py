@@ -122,10 +122,74 @@ def upsert_daily_avg(origin: str, dest: str, mean_price: Decimal | float, db_pat
     conn.close()
 
 
+def insert_pair(
+    out_id: int,
+    in_id: int,
+    price_total: float,
+    origin: str,
+    dest: str,
+    depart: str,
+    ret: str,
+    steal: bool,
+    db_path: str = DB_FILE,
+) -> int:
+    """Insert a paired one-way offer and return its row id or ``-1`` if duplicate."""
+
+    sql = """
+    INSERT INTO offers_pair (
+        out_id,in_id,origin,destination,
+        depart_date,return_date,
+        price_total_pln,steal_pair,fetched_at
+    ) VALUES (?,?,?,?,?,?,?,?,
+              CURRENT_TIMESTAMP)
+    ON CONFLICT(out_id,in_id) DO NOTHING
+    RETURNING id;
+    """
+    conn = sqlite3.connect(db_path)
+    cur = conn.execute(
+        sql,
+        (out_id, in_id, origin, dest, depart, ret, price_total, int(steal)),
+    )
+    row = cur.fetchone()
+    conn.commit()
+    conn.close()
+    return int(row[0]) if row else -1
+
+
+def find_returns(
+    out_offer_id: int,
+    dest: str,
+    orig: str,
+    window_start: str,
+    window_end: str,
+    max_stops: int,
+    db_path: str = DB_FILE,
+):
+    """Find return legs for a given offer within a time window."""
+
+    q = """
+    SELECT id, price_pln, departure_at
+      FROM offers_raw
+     WHERE origin      = ?
+       AND destination = ?
+       AND departure_at BETWEEN ? AND ?
+       AND stops <= ?
+    """
+    conn = sqlite3.connect(db_path)
+    rows = conn.execute(
+        q,
+        (dest, orig, window_start, window_end, max_stops),
+    ).fetchall()
+    conn.close()
+    return rows
+
+
 __all__ = [
     "init_db",
     "insert_offer",
     "mark_alert_sent",
     "get_last_30d_avg",
     "upsert_daily_avg",
+    "insert_pair",
+    "find_returns",
 ]
