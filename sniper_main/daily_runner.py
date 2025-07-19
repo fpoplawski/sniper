@@ -1,24 +1,24 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date
 from decimal import Decimal
 from typing import List, Optional
-import time
 
 import click
 
 from .aviasales_fetcher import AviasalesFetcher
 from .config import Config
-from .steal_engine import is_steal
-from .pair_engine import process_outbound
-from .notifier import send_telegram
 from .db import (
+    DB_FILE,
+    get_last_30d_avg,
     insert_offer,
     mark_alert_sent,
-    get_last_30d_avg,
-    DB_FILE,
 )
+from .notifier import send_telegram
+from .pair_engine import process_outbound
+from .steal_engine import is_steal
 
 # ────────────────────────────────────────────────────────────────
 # Konfiguracja
@@ -72,16 +72,11 @@ def run_once(dep_date: Optional[str] = None) -> None:
                 if off.stops > cfg.max_stops:
                     continue
 
-                if (
-                    off.max_layover_h
-                    and off.max_layover_h > cfg.max_layover_h
-                ):
+                if off.max_layover_h and off.max_layover_h > cfg.max_layover_h:
                     continue
 
                 days = travel_days(off.depart_date, off.return_date)
-                if days and (
-                    days < cfg.min_trip_days or days > cfg.max_trip_days
-                ):
+                if days and (days < cfg.min_trip_days or days > cfg.max_trip_days):
                     continue
 
                 # ── Zapis do bazy ────────────────────────────

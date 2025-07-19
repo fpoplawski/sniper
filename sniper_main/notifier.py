@@ -1,7 +1,9 @@
-from telegram import Bot
 import smtplib
 import ssl
 from email.mime.text import MIMEText
+
+from telegram import Bot
+
 from .config import Config
 
 # Load configuration once

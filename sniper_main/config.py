@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     @field_validator("airports", mode="before")
     @classmethod
-    def _split_airports(cls, v):
+    def _split_airports(cls, v: str | list[str]) -> list[str]:
         if isinstance(v, str):
             return [a.strip() for a in v.split(",") if a.strip()]
         return v

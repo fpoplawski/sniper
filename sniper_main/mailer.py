@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import smtplib
 from datetime import date
 from email.message import EmailMessage
-import smtplib
-from typing import List, Dict
+from typing import Dict, List
 
 
 def send_email(
@@ -26,7 +26,7 @@ def send_email(
         return
 
     today = date.today()
-    subject = f"\U0001F6EB {len(deals)} nowych okazji lotniczych – {today:%Y-%m-%d}"
+    subject = f"\U0001f6eb {len(deals)} nowych okazji lotniczych – {today:%Y-%m-%d}"
 
     msg = EmailMessage()
     msg["Subject"] = subject

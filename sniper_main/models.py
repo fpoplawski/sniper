@@ -5,6 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
+
 @dataclass(slots=True)
 class FlightOffer:
     origin: str

@@ -8,12 +8,13 @@ Warunek STEAL-pair (strict):
 """
 
 from __future__ import annotations
-from datetime import timedelta
+
 import logging
+from datetime import timedelta
 from typing import List
 
 from .config import Config
-from .db import get_last_30d_avg, find_returns, insert_pair
+from .db import find_returns, get_last_30d_avg, insert_pair
 from .models import FlightOffer
 
 CFG = Config.from_json()
