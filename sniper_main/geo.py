@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from math import radians, sin, cos, sqrt, atan2
+from math import atan2, cos, radians, sin, sqrt
 
 # At least 500 airport entries. Format: IATA -> (latitude, longitude)
 AIRPORTS = {

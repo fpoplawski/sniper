@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import logging
 import os
-import sqlite3
 import pathlib
+import sqlite3
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 from .models import FlightOffer
-
 
 # Default paths – relative to the repository root
 REPO_DIR = pathlib.Path(__file__).resolve().parent.parent
@@ -35,9 +34,7 @@ def migrate(db_path: str = DB_FILE, schema_path: str = SCHEMA_FILE) -> None:
             with open(schema_path, "r", encoding="utf-8") as fh:
                 conn.executescript(fh.read())
             if row:
-                conn.execute(
-                    "UPDATE schema_version SET version=?", (SCHEMA_VERSION,)
-                )
+                conn.execute("UPDATE schema_version SET version=?", (SCHEMA_VERSION,))
             else:
                 conn.execute(
                     "INSERT INTO schema_version(version) VALUES (?)",
@@ -129,7 +126,9 @@ def mark_alert_sent(offer_id: int, db_path: str = DB_FILE) -> None:
         conn.commit()
 
 
-def get_last_30d_avg(origin: str, dest: str, db_path: str = DB_FILE) -> Optional[Decimal]:
+def get_last_30d_avg(
+    origin: str, dest: str, db_path: str = DB_FILE
+) -> Optional[Decimal]:
     """Return average price for ``origin``-``dest`` from the last 30 days."""
     logger.info("Querying 30-day average for %s-%s", origin, dest)
     with sqlite3.connect(db_path) as conn:
@@ -146,7 +145,9 @@ def get_last_30d_avg(origin: str, dest: str, db_path: str = DB_FILE) -> Optional
     return Decimal(str(val)) if val is not None else None
 
 
-def upsert_daily_avg(origin: str, dest: str, mean_price: Decimal | float, db_path: str = DB_FILE) -> None:
+def upsert_daily_avg(
+    origin: str, dest: str, mean_price: Decimal | float, db_path: str = DB_FILE
+) -> None:
     """Insert or update today's average price for ``origin``-``dest``."""
     day_str = datetime.utcnow().replace(tzinfo=timezone.utc).date().isoformat()
     logger.info("Upserting daily avg for %s-%s", origin, dest)

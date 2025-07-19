@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import datetime, timezone, date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from sniper_main.db import init_db, insert_offer

@@ -1,11 +1,11 @@
 import os
-from datetime import datetime, timedelta
 import sqlite3
+from datetime import datetime, timedelta
 
 import pytest
 
-from sniper_main.db import init_db
 from sniper_main import aggregator
+from sniper_main.db import init_db
 
 
 def test_aggregate_30_days_no_gaps(tmp_path):

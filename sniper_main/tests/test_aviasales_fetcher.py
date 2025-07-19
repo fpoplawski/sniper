@@ -1,9 +1,9 @@
 import os
-import sys
 import sqlite3
-from datetime import datetime, timezone, timedelta
+import sys
+from datetime import datetime, timedelta, timezone
 from tempfile import NamedTemporaryFile
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import pytest
 

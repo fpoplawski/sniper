@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [ "**" ]
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install -r sniper_main/requirements.txt
+      - run: pip install black isort flake8 pytest
+      - run: black --check sniper_main
+      - run: isort --check-only sniper_main
+      - run: flake8 sniper_main
+      - run: pytest sniper_main/tests

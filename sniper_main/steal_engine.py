@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from decimal import Decimal
-
 from typing import Any
+
 from .db import get_last_30d_avg
 from .models import FlightOffer
 

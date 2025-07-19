@@ -41,9 +41,9 @@ def aggregate(
     if df.empty:
         result_df = pd.DataFrame(columns=["origin", "destination", "day", "mean_price"])
     else:
-        daily_min = (
-            df.groupby(["origin", "destination", "day"], as_index=False)["price_pln"].min()
-        )
+        daily_min = df.groupby(["origin", "destination", "day"], as_index=False)[
+            "price_pln"
+        ].min()
         daily_min = daily_min.sort_values("day")
         rolling = (
             daily_min.groupby(["origin", "destination"], as_index=False)
@@ -71,8 +71,8 @@ def aggregate(
             conn,
             parse_dates=["day"],
         )
-        cutoff = (
-            pd.Timestamp.utcnow().tz_localize(None).normalize() - pd.Timedelta(days=60)
+        cutoff = pd.Timestamp.utcnow().tz_localize(None).normalize() - pd.Timedelta(
+            days=60
         )
         filtered = agg_df[agg_df["day"] >= cutoff]
         conn.execute("DELETE FROM offers_agg")

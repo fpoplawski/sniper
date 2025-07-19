@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import sqlite3
 import html
+import sqlite3
 
 from .db import DB_FILE
 from .notifier import send_email_daily

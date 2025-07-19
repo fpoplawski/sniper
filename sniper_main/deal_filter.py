@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from statistics import median
 import sqlite3
-from typing import Mapping, Any, List
-from datetime import datetime, timezone, date
+from datetime import date, datetime, timezone
 from decimal import Decimal
+from statistics import median
+from typing import Any, List, Mapping
 
 from .geo import distance_km
-
 
 # ────────────────────────────────────────────────────────────────
 # 1.  Funkcje analityczne używane w scoringu „legacy”
@@ -87,7 +86,9 @@ def is_good(row: Mapping[str, Any], cfg: Mapping[str, Any], baseline: float) -> 
     return True
 
 
-def is_good_composite(row: Mapping[str, Any], cfg: Mapping[str, Any], baseline: float) -> bool:
+def is_good_composite(
+    row: Mapping[str, Any], cfg: Mapping[str, Any], baseline: float
+) -> bool:
     """Composite criterion used in tests combining several checks."""
     price = float(row.get("price", row.get("price_pln", 0.0)))
     if price <= 0 or baseline <= 0:
