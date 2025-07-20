@@ -5,9 +5,10 @@ import time
 from typing import Optional
 
 import click
+
+from . import aggregator, daily_report
 from .daily_runner import cfg, fetcher, run_once
 from .db import migrate, DB_FILE
-from . import aggregator, daily_report
 
 logger = logging.getLogger(__name__)
 
