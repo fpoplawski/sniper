@@ -5,6 +5,8 @@ from datetime import datetime, timezone, timedelta
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch, Mock
 
+import logging
+
 
 from sniper_main.aviasales_fetcher import AviasalesFetcher, main
 from sniper_main.deal_filter import compute_deal_score
@@ -115,10 +117,11 @@ def test_skip_incomplete_rows(mock_get):
 
 
 @patch("sniper_main.aviasales_fetcher.AviasalesFetcher.search_prices")
-def test_cli_return_date_argument(mock_search, monkeypatch, capsys):
+def test_cli_return_date_argument(mock_search, monkeypatch, caplog):
     os.environ["TP_TOKEN"] = "x"
     mock_search.return_value = []
     argv = ["aviasales_fetcher.py", "WAW", "--return-date", "2024-09-20"]
+    caplog.set_level(logging.INFO)
     with patch.object(sys, "argv", argv):
         main()
     mock_search.assert_called_once_with(
@@ -131,7 +134,9 @@ def test_cli_return_date_argument(mock_search, monkeypatch, capsys):
         limit=100,
         max_age_h=12,
     )
-    assert "No offers found" in capsys.readouterr().out
+    assert any(
+        "No offers found" in record.getMessage() for record in caplog.records
+    )
 
 
 def test_compute_deal_score_far_departure():

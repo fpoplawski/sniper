@@ -30,7 +30,8 @@ fetcher = AviasalesFetcher(cfg.tp_token, cfg.tp_marker)
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s: %(message)s",
+    handlers=[logging.FileHandler("sniper.log"), logging.StreamHandler()],
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ def run_once(dep_date: Optional[str] = None) -> None:
 
     for origin in cfg.origins or []:
         for dest in cfg.destinations or []:
-            logging.info("Fetching: %s ➔ %s", origin, dest)
+            logger.info("Fetching: %s ➔ %s", origin, dest)
             try:
                 offers_iter = fetcher.search_prices(
                     origin,
@@ -65,7 +66,7 @@ def run_once(dep_date: Optional[str] = None) -> None:
                     currency=cfg.currency,
                 )
             except Exception as exc:
-                logging.warning(
+                logger.warning(
                     "  Failed to fetch %s->%s: %s", origin, dest, exc
                 )
                 continue
@@ -111,14 +112,14 @@ def run_once(dep_date: Optional[str] = None) -> None:
                     send_telegram(msg)
                     mark_alert_sent(offer_id, db_path=DB_FILE)
 
-    logging.info("Inserted %s offers into DB", len(total_inserted))
+    logger.info("Inserted %s offers into DB", len(total_inserted))
 
 
 def main() -> None:
     try:
         run_once()
     except Exception:
-        logging.exception("daily_runner failed")
+        logger.exception("daily_runner failed")
 
 
 @click.group()
@@ -147,7 +148,7 @@ def fetch(date: Optional[str]) -> None:
     migrate(db_path=DB_FILE)
     for origin in cfg.origins or []:
         for dest in cfg.destinations or []:
-            logging.info("Fetching: %s ➔ %s", origin, dest)
+            logger.info("Fetching: %s ➔ %s", origin, dest)
             try:
                 offers = fetcher.search_prices(
                     origin,
@@ -157,7 +158,7 @@ def fetch(date: Optional[str]) -> None:
                     currency=cfg.currency,
                 )
             except Exception as exc:
-                logging.warning(
+                logger.warning(
                     "  Failed to fetch %s->%s: %s", origin, dest, exc
                 )
                 continue

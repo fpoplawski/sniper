@@ -5,6 +5,10 @@ from __future__ import annotations
 
 from math import radians, sin, cos, sqrt, atan2
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 # At least 500 airport entries. Format: IATA -> (latitude, longitude)
 AIRPORTS = {
     "WKK": (59.2826004028, -158.617996216),

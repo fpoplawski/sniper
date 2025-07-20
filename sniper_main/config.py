@@ -3,11 +3,15 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import List
 
+import logging
+
 from dotenv import load_dotenv
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):

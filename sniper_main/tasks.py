@@ -6,10 +6,14 @@
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
+import logging
+
 from . import daily_runner
 from . import aggregator
 from . import daily_report
 from .config import Config
+
+logger = logging.getLogger(__name__)
 
 sched = BlockingScheduler(timezone="UTC")
 

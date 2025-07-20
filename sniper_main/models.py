@@ -5,6 +5,10 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 @dataclass(slots=True)
 class FlightOffer:

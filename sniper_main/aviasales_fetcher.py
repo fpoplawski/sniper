@@ -214,10 +214,10 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     if not offers:
-        print("No offers found")
+        logger.info("No offers found")
     else:
         for off in offers:
-            print(off)
+            logger.info(off)
 
 
 __all__ = ["AviasalesFetcher", "HttpError", "ParseError", "main"]
