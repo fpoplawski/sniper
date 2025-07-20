@@ -52,3 +52,12 @@ CREATE TABLE IF NOT EXISTS offers_pair (
 );
 CREATE INDEX IF NOT EXISTS pair_dates_idx
     ON offers_pair(origin,destination,depart_date);
+
+-- weekday averages
+CREATE TABLE IF NOT EXISTS weekday_avg (
+  origin TEXT NOT NULL,
+  destination TEXT NOT NULL,
+  weekday INTEGER NOT NULL,
+  avg_price NUMERIC NOT NULL,
+  PRIMARY KEY (origin,destination,weekday)
+);
