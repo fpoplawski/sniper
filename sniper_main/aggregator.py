@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import logging
 import sqlite3
 import tempfile
 from typing import Optional, Union
 
-import logging
-
 import pandas as pd
+
 from .db import DB_FILE, upsert_daily_avg
 
 logger = logging.getLogger(__name__)
