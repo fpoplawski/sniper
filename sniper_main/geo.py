@@ -523,6 +523,8 @@ EARTH_RADIUS_KM = 6371.0
 
 
 # https://en.wikipedia.org/wiki/Haversine_formula
+
+
 def distance_km(orig: str, dest: str) -> float:
     """Return great-circle distance between two IATA airports in kilometers."""
     try:
