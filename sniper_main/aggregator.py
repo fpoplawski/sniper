@@ -7,10 +7,9 @@ from typing import Optional, Union
 import logging
 
 import pandas as pd
+from .db import DB_FILE, upsert_daily_avg
 
 logger = logging.getLogger(__name__)
-
-from .db import DB_FILE, upsert_daily_avg
 
 
 def aggregate(

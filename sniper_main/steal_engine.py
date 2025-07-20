@@ -6,9 +6,9 @@ from typing import Any
 from .db import get_last_30d_avg
 
 import logging
+from .models import FlightOffer
 
 logger = logging.getLogger(__name__)
-from .models import FlightOffer
 
 
 def is_steal(offer: FlightOffer, cfg: Any) -> bool:
