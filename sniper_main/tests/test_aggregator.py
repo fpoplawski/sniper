@@ -27,7 +27,8 @@ def test_aggregate_30_days_no_gaps(tmp_path):
         price = 100 + i
         prices.append(price)
         conn.execute(
-            "INSERT INTO offers_raw (origin, destination, price_pln, fetched_at) VALUES (?,?,?,?)",
+            "INSERT INTO offers_raw (origin, destination, price_pln, "
+            "fetched_at) VALUES (?,?,?,?)",
             ("WAW", "JFK", price, dt.isoformat()),
         )
     conn.commit()
@@ -37,7 +38,8 @@ def test_aggregate_30_days_no_gaps(tmp_path):
 
     conn = sqlite3.connect(db_file)
     cur = conn.execute(
-        "SELECT mean_price FROM offers_agg WHERE origin='WAW' AND destination='JFK'"
+        "SELECT mean_price FROM offers_agg WHERE origin='WAW' "
+        "AND destination='JFK'"
     )
     row = cur.fetchone()
     conn.close()

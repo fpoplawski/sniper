@@ -17,14 +17,18 @@ class Config:
 
 
 def test_is_steal_true(monkeypatch):
-    monkeypatch.setattr(steal_engine, "get_last_30d_avg", lambda o, d: Decimal("1000"))
+    monkeypatch.setattr(
+        steal_engine, "get_last_30d_avg", lambda o, d: Decimal("1000")
+    )
     offer = Offer("WAW", "JFK", Decimal("750"))
     cfg = Config()
     assert steal_engine.is_steal(offer, cfg)
 
 
 def test_is_steal_false_price(monkeypatch):
-    monkeypatch.setattr(steal_engine, "get_last_30d_avg", lambda o, d: Decimal("100"))
+    monkeypatch.setattr(
+        steal_engine, "get_last_30d_avg", lambda o, d: Decimal("100")
+    )
     offer = Offer("WAW", "JFK", Decimal("90"))
     cfg = Config()
     assert not steal_engine.is_steal(offer, cfg)
@@ -38,7 +42,9 @@ def test_is_steal_no_data(monkeypatch):
 
 
 def test_is_steal_non_positive_avg(monkeypatch):
-    monkeypatch.setattr(steal_engine, "get_last_30d_avg", lambda o, d: Decimal("0"))
+    monkeypatch.setattr(
+        steal_engine, "get_last_30d_avg", lambda o, d: Decimal("0")
+    )
     offer = Offer("WAW", "JFK", Decimal("10"))
     cfg = Config()
     assert not steal_engine.is_steal(offer, cfg)

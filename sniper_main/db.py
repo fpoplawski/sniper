@@ -4,7 +4,7 @@ import logging
 import os
 import sqlite3
 import pathlib
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, List, Tuple
 
@@ -25,7 +25,8 @@ def migrate(db_path: str = DB_FILE, schema_path: str = SCHEMA_FILE) -> None:
     logger.info("Running migrations for %s", db_path)
     with sqlite3.connect(db_path) as conn:
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
+            "CREATE TABLE IF NOT EXISTS schema_version "
+            "(version INTEGER NOT NULL)"
         )
         cur = conn.execute("SELECT version FROM schema_version")
         row = cur.fetchone()
@@ -53,7 +54,8 @@ def init_db(db_path: str = DB_FILE, schema_path: str = SCHEMA_FILE) -> None:
         with open(schema_path, "r", encoding="utf-8") as fh:
             conn.executescript(fh.read())
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)"
+            "CREATE TABLE IF NOT EXISTS schema_version "
+            "(version INTEGER NOT NULL)"
         )
         conn.execute("DELETE FROM schema_version")
         conn.execute(
@@ -76,8 +78,10 @@ def insert_offer(offer: FlightOffer, db_path: str = DB_FILE) -> int:
         cur.execute(
             """
             SELECT id FROM offers_raw
-             WHERE origin=? AND destination=? AND depart_date=? AND return_date IS ?
-               AND price_pln=? AND airline=? AND stops=? AND deep_link=?
+             WHERE origin=? AND destination=? AND depart_date=?
+               AND return_date IS ?
+               AND price_pln=? AND airline=? AND stops=?
+               AND deep_link=?
             """,
             (
                 offer.origin,
@@ -97,8 +101,18 @@ def insert_offer(offer: FlightOffer, db_path: str = DB_FILE) -> int:
         cur.execute(
             """
             INSERT INTO offers_raw(
-                origin, destination, depart_date, return_date, price_pln, airline,
-                stops, total_time_h, layover_h, deep_link, fetched_at, alert_sent
+                origin,
+                destination,
+                depart_date,
+                return_date,
+                price_pln,
+                airline,
+                stops,
+                total_time_h,
+                layover_h,
+                deep_link,
+                fetched_at,
+                alert_sent
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
@@ -125,11 +139,15 @@ def mark_alert_sent(offer_id: int, db_path: str = DB_FILE) -> None:
     """Mark offer with ``offer_id`` as having an alert sent."""
     logger.info("Marking alert sent for offer %s", offer_id)
     with sqlite3.connect(db_path) as conn:
-        conn.execute("UPDATE offers_raw SET alert_sent=1 WHERE id=?", (offer_id,))
+        conn.execute(
+            "UPDATE offers_raw SET alert_sent=1 WHERE id=?", (offer_id,)
+        )
         conn.commit()
 
 
-def get_last_30d_avg(origin: str, dest: str, db_path: str = DB_FILE) -> Optional[Decimal]:
+def get_last_30d_avg(
+    origin: str, dest: str, db_path: str = DB_FILE
+) -> Optional[Decimal]:
     """Return average price for ``origin``-``dest`` from the last 30 days."""
     logger.info("Querying 30-day average for %s-%s", origin, dest)
     with sqlite3.connect(db_path) as conn:
@@ -146,7 +164,9 @@ def get_last_30d_avg(origin: str, dest: str, db_path: str = DB_FILE) -> Optional
     return Decimal(str(val)) if val is not None else None
 
 
-def upsert_daily_avg(origin: str, dest: str, mean_price: Decimal | float, db_path: str = DB_FILE) -> None:
+def upsert_daily_avg(
+    origin: str, dest: str, mean_price: Decimal | float, db_path: str = DB_FILE
+) -> None:
     """Insert or update today's average price for ``origin``-``dest``."""
     day_str = datetime.utcnow().replace(tzinfo=timezone.utc).date().isoformat()
     logger.info("Upserting daily avg for %s-%s", origin, dest)
@@ -174,7 +194,10 @@ def insert_pair(
     steal: bool,
     db_path: str = DB_FILE,
 ) -> int:
-    """Insert a paired one-way offer and return its row id or ``-1`` if duplicate."""
+    """Insert a paired one-way offer.
+
+    Return its row id or ``-1`` if duplicate.
+    """
 
     sql = """
     INSERT INTO offers_pair (
@@ -190,7 +213,16 @@ def insert_pair(
     with sqlite3.connect(db_path) as conn:
         cur = conn.execute(
             sql,
-            (out_id, in_id, origin, dest, depart, ret, price_total, int(steal)),
+            (
+                out_id,
+                in_id,
+                origin,
+                dest,
+                depart,
+                ret,
+                price_total,
+                int(steal),
+            ),
         )
         row = cur.fetchone()
         conn.commit()

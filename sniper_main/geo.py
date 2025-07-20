@@ -510,7 +510,9 @@ AIRPORTS = {
 }
 
 # Precompute coordinates in radians for faster calculations
-_RAD = {code: (radians(lat), radians(lon)) for code, (lat, lon) in AIRPORTS.items()}
+_RAD = {
+    code: (radians(lat), radians(lon)) for code, (lat, lon) in AIRPORTS.items()
+}
 
 # Average Earth radius in kilometers used for distance calculations
 EARTH_RADIUS_KM = 6371.0

@@ -3,6 +3,7 @@
 • co Config.poll_interval_h – uruchom fetcher + ``daily_runner``
 • raz dziennie o 02:00 UTC – ``aggregator`` + e-mail podsumowujący
 """
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from . import daily_runner
@@ -24,6 +25,7 @@ def email_job() -> None:
     """Aggregate historic data and send daily summary email."""
     aggregator.aggregate()
     daily_report.send_daily_report()
+
 
 if __name__ == "__main__":
     sched.start()

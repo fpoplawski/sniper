@@ -17,7 +17,6 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-
 class HttpError(Exception):
     """Communication error with the Travelpayouts API."""
 
@@ -114,7 +113,9 @@ class AviasalesFetcher:
         logger.info("Fetched %d offers", len(result))
         return result
 
-    def save_offers(self, offers: list[FlightOffer], backend: str, *, path: str) -> None:
+    def save_offers(
+        self, offers: list[FlightOffer], backend: str, *, path: str
+    ) -> None:
         """Persist offers to a SQLite DB (used in tests)."""
         if backend != "sqlite":
             raise ValueError("Unsupported backend")
@@ -122,7 +123,8 @@ class AviasalesFetcher:
         conn = sqlite3.connect(path + ".db")
         cur = conn.cursor()
         cur.execute(
-            "CREATE TABLE IF NOT EXISTS flights (origin TEXT, destination TEXT, price REAL, fetched_at TEXT)"
+            "CREATE TABLE IF NOT EXISTS flights ("
+            "origin TEXT, destination TEXT, price REAL, fetched_at TEXT)"
         )
         rows = [
             (
@@ -160,8 +162,9 @@ class AviasalesFetcher:
         return_dt = dt.date.fromisoformat(ret_raw[:10]) if ret_raw else None
 
         deep_link = (
-            f"{self.domain}{item['link']}" if item.get("link") else
-            f"{self.domain}/search/"
+            f"{self.domain}{item['link']}"
+            if item.get("link")
+            else f"{self.domain}/search/"
             f"{item['origin']}{depart.strftime('%d%m')}"
             f"{item['destination']}"
             f"{return_dt.strftime('%d%m') if return_dt else ''}"
