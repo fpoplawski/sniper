@@ -15,6 +15,7 @@ from typing import List
 from .config import Config
 from .db import get_last_30d_avg, find_returns, insert_pair
 from .models import FlightOffer
+from .notifier import send_telegram
 
 CFG = Config.from_json()
 
@@ -83,7 +84,6 @@ def process_outbound(out_offer: FlightOffer, out_id: int) -> List[int]:
             )
 
         if steal and pair_id != -1 and CFG.alert_pair and CFG.telegram_instant:
-            from .notifier import send_telegram
 
             msg = (
                 "💥 STEAL PAIR\n"

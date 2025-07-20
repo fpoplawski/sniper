@@ -13,6 +13,7 @@ from .config import Config
 from .steal_engine import is_steal
 from .pair_engine import process_outbound
 from .notifier import send_telegram
+from . import aggregator, daily_report
 from .db import (
     insert_offer,
     mark_alert_sent,
@@ -170,7 +171,6 @@ def fetch(date: Optional[str]) -> None:
 def report() -> None:
     """Aggregate history and send daily report."""
     migrate(db_path=DB_FILE)
-    from . import aggregator, daily_report
 
     aggregator.aggregate()
     daily_report.send_daily_report()
