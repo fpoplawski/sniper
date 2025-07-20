@@ -19,14 +19,18 @@ MIGRATIONS_DIR = pathlib.Path(__file__).resolve().parent / "migrations"
 logger = logging.getLogger(__name__)
 
 
-def migrate(db_path: str = DB_FILE, migrations_dir: str = str(MIGRATIONS_DIR)) -> None:
+def migrate(
+    db_path: str = DB_FILE,
+    migrations_dir: str = str(MIGRATIONS_DIR),
+) -> None:
     """Apply SQL migrations from *migrations_dir* to *db_path*."""
     logger.info("Running migrations for %s", db_path)
     mig_dir = pathlib.Path(migrations_dir)
     scripts = sorted(mig_dir.glob("*.sql"))
     with sqlite3.connect(db_path) as conn:
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)"
+            "CREATE TABLE IF NOT EXISTS schema_version "
+            "(version INTEGER PRIMARY KEY)"
         )
         cur = conn.execute("SELECT MAX(version) FROM schema_version")
         row = cur.fetchone()
@@ -35,19 +39,26 @@ def migrate(db_path: str = DB_FILE, migrations_dir: str = str(MIGRATIONS_DIR)) -
             try:
                 version = int(script.stem.split("_")[0])
             except ValueError:
-                logger.warning("Skipping migration with unexpected name: %s", script.name)
+                logger.warning(
+                    "Skipping migration with unexpected name: %s",
+                    script.name,
+                )
                 continue
             if version > current:
                 logger.info("Applying migration %s", script.name)
                 with open(script, "r", encoding="utf-8") as fh:
                     conn.executescript(fh.read())
                 conn.execute(
-                    "INSERT INTO schema_version(version) VALUES (?)", (version,)
+                    "INSERT INTO schema_version(version) VALUES (?)",
+                    (version,),
                 )
                 conn.commit()
 
 
-def init_db(db_path: str = DB_FILE, migrations_dir: str = str(MIGRATIONS_DIR)) -> None:
+def init_db(
+    db_path: str = DB_FILE,
+    migrations_dir: str = str(MIGRATIONS_DIR),
+) -> None:
     """Create a fresh database and apply all migrations."""
     logger.info("Initializing database at %s", db_path)
     if os.path.exists(db_path):
