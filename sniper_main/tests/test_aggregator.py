@@ -10,14 +10,14 @@ from sniper_main import aggregator
 
 def test_aggregate_30_days_no_gaps(tmp_path):
     db_file = tmp_path / "test.db"
-    schema_path = os.path.join(
+    migrations_dir = os.path.join(
         os.path.dirname(__file__),
         "..",
         "..",
-        "sniper-main",
-        "schema.sql",
+        "sniper_main",
+        "migrations",
     )
-    init_db(str(db_file), schema_path=schema_path)
+    init_db(str(db_file), migrations_dir=migrations_dir)
 
     conn = sqlite3.connect(db_file)
     now = datetime.utcnow()

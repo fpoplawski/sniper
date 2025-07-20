@@ -14,54 +14,45 @@ from .models import FlightOffer
 # Default paths – relative to the repository root
 REPO_DIR = pathlib.Path(__file__).resolve().parent.parent
 DB_FILE = os.getenv("SNIPER_DB", str(REPO_DIR / "aviasales_offers.db"))
-SCHEMA_FILE = str(REPO_DIR / "schema.sql")
-SCHEMA_VERSION = 1
+MIGRATIONS_DIR = pathlib.Path(__file__).resolve().parent / "migrations"
 
 logger = logging.getLogger(__name__)
 
 
-def migrate(db_path: str = DB_FILE, schema_path: str = SCHEMA_FILE) -> None:
-    """Run pending migrations on the database."""
+def migrate(db_path: str = DB_FILE, migrations_dir: str = str(MIGRATIONS_DIR)) -> None:
+    """Apply SQL migrations from *migrations_dir* to *db_path*."""
     logger.info("Running migrations for %s", db_path)
+    mig_dir = pathlib.Path(migrations_dir)
+    scripts = sorted(mig_dir.glob("*.sql"))
     with sqlite3.connect(db_path) as conn:
         conn.execute(
-            "CREATE TABLE IF NOT EXISTS schema_version "
-            "(version INTEGER NOT NULL)"
+            "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)"
         )
-        cur = conn.execute("SELECT version FROM schema_version")
+        cur = conn.execute("SELECT MAX(version) FROM schema_version")
         row = cur.fetchone()
-        current = row[0] if row else 0
-        if current < SCHEMA_VERSION:
-            logger.info("Applying schema version %s", SCHEMA_VERSION)
-            with open(schema_path, "r", encoding="utf-8") as fh:
-                conn.executescript(fh.read())
-            if row:
+        current = row[0] if row and row[0] is not None else 0
+        for script in scripts:
+            try:
+                version = int(script.stem.split("_")[0])
+            except ValueError:
+                logger.warning("Skipping migration with unexpected name: %s", script.name)
+                continue
+            if version > current:
+                logger.info("Applying migration %s", script.name)
+                with open(script, "r", encoding="utf-8") as fh:
+                    conn.executescript(fh.read())
                 conn.execute(
-                    "UPDATE schema_version SET version=?", (SCHEMA_VERSION,)
+                    "INSERT INTO schema_version(version) VALUES (?)", (version,)
                 )
-            else:
-                conn.execute(
-                    "INSERT INTO schema_version(version) VALUES (?)",
-                    (SCHEMA_VERSION,),
-                )
-            conn.commit()
+                conn.commit()
 
 
-def init_db(db_path: str = DB_FILE, schema_path: str = SCHEMA_FILE) -> None:
-    """Initialize SQLite database using *schema_path*."""
+def init_db(db_path: str = DB_FILE, migrations_dir: str = str(MIGRATIONS_DIR)) -> None:
+    """Create a fresh database and apply all migrations."""
     logger.info("Initializing database at %s", db_path)
-    with sqlite3.connect(db_path) as conn:
-        with open(schema_path, "r", encoding="utf-8") as fh:
-            conn.executescript(fh.read())
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS schema_version "
-            "(version INTEGER NOT NULL)"
-        )
-        conn.execute("DELETE FROM schema_version")
-        conn.execute(
-            "INSERT INTO schema_version(version) VALUES (?)",
-            (SCHEMA_VERSION,),
-        )
+    if os.path.exists(db_path):
+        os.remove(db_path)
+    migrate(db_path=db_path, migrations_dir=migrations_dir)
 
 
 def insert_offer(offer: FlightOffer, db_path: str = DB_FILE) -> int:

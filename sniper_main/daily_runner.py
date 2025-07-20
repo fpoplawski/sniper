@@ -18,6 +18,7 @@ from .db import (
     mark_alert_sent,
     get_last_30d_avg,
     DB_FILE,
+    migrate,
 )
 
 # ────────────────────────────────────────────────────────────────
@@ -130,6 +131,7 @@ def cli() -> None:
 @click.option("--date", help="Departure date (YYYY-MM-DD) for manual tests")
 def run(once: bool, date: Optional[str]) -> None:
     """Fetch new offers and process them."""
+    migrate(db_path=DB_FILE)
     if once:
         run_once(date)
     else:
@@ -142,6 +144,7 @@ def run(once: bool, date: Optional[str]) -> None:
 @click.option("--date", help="Departure date (YYYY-MM-DD) for manual tests")
 def fetch(date: Optional[str]) -> None:
     """Fetch offers only and print them."""
+    migrate(db_path=DB_FILE)
     for origin in cfg.origins or []:
         for dest in cfg.destinations or []:
             logging.info("Fetching: %s ➔ %s", origin, dest)
@@ -165,6 +168,7 @@ def fetch(date: Optional[str]) -> None:
 @cli.command()
 def report() -> None:
     """Aggregate history and send daily report."""
+    migrate(db_path=DB_FILE)
     from . import aggregator, daily_report
 
     aggregator.aggregate()
