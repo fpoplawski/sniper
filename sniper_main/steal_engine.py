@@ -1,29 +1,60 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
 from decimal import Decimal
 from typing import Any
 
-from .db import get_last_30d_avg
+import pandas as pd
+
+from .db import DB_FILE
 from .models import FlightOffer
 
 logger = logging.getLogger(__name__)
 
 
-def is_steal(offer: FlightOffer, cfg: Any) -> bool:
-    """Return ``True`` if *offer* price is a steal compared to recent average.
+def is_weekday_steal(offer: FlightOffer, cfg: Any) -> bool:
+    """Return ``True`` if *offer* price is far below the seasonal average."""
 
-    Example:
-        >>> cfg.steal_threshold = 0.20
-        >>> is_steal(offer(price_pln=Decimal("800")), cfg)  # avg=1000
-        True
-    """
+    weekday = offer.depart_date.weekday()
+    weekday_sql = str((weekday + 1) % 7)
 
-    avg = get_last_30d_avg(offer.origin, offer.destination)
-    if avg is None or avg <= 0:
+    # Seasonal average for this route/weekday
+    with sqlite3.connect(DB_FILE) as conn:
+        cur = conn.execute(
+            """
+            SELECT avg_price FROM weekday_avg
+             WHERE origin=? AND destination=? AND weekday=?
+            """,
+            (offer.origin, offer.destination, weekday),
+        )
+        row = cur.fetchone()
+
+    if not row or row[0] is None:
         return False
-    threshold = avg * (Decimal("1") - Decimal(cfg.steal_threshold))
-    return offer.price_pln <= threshold
 
+    avg_price = Decimal(str(row[0]))
 
-__all__ = ["is_steal"]
+    # Standard deviation of historical prices for this route/weekday
+    with sqlite3.connect(DB_FILE) as conn:
+        df = pd.read_sql_query(
+            """
+            SELECT price_pln FROM offers_raw
+             WHERE origin=? AND destination=?
+               AND strftime('%w', depart_date)=?
+               AND fetched_at >= DATE('now', '-90 days')
+            """,
+            conn,
+            params=(offer.origin, offer.destination, weekday_sql),
+        )
+
+    std_val = df["price_pln"].std()
+    if pd.isna(std_val):
+        std = Decimal("0")
+    else:
+        std = Decimal(str(std_val))
+
+    threshold = avg_price - Decimal(str(cfg.steal_threshold)) * std
+    return offer.price_pln < threshold
+
+__all__ = ["is_weekday_steal"]

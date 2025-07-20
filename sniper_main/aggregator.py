@@ -102,6 +102,53 @@ def aggregate(
     return None
 
 
+def compute_weekday_averages(db_path: str = DB_FILE) -> pd.DataFrame:
+    """Return average price per route and weekday over the last 90 days."""
+
+    conn = sqlite3.connect(db_path)
+    try:
+        df = pd.read_sql_query(
+            """
+            SELECT origin, destination, depart_date, price_pln
+              FROM offers_raw
+             WHERE fetched_at >= DATE('now', '-90 days')
+            """,
+            conn,
+            parse_dates=["depart_date"],
+        )
+    finally:
+        conn.close()
+
+    if df.empty:
+        return pd.DataFrame(
+            columns=["origin", "destination", "weekday", "avg_price"]
+        )
+
+    df["weekday"] = df["depart_date"].dt.weekday
+    result_df = (
+        df.groupby(["origin", "destination", "weekday"], as_index=False)[
+            "price_pln"
+        ]
+        .mean()
+        .rename(columns={"price_pln": "avg_price"})
+    )
+    return result_df
+
+
+def store_weekday_averages(db_path: str = DB_FILE) -> None:
+    """Compute weekday averages and store them in ``weekday_avg`` table."""
+
+    df = compute_weekday_averages(db_path)
+    conn = sqlite3.connect(db_path)
+    try:
+        conn.execute("DELETE FROM weekday_avg")
+        if not df.empty:
+            df.to_sql("weekday_avg", conn, if_exists="append", index=False)
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def main() -> None:
     aggregate()
 
