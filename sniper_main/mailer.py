@@ -10,6 +10,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def send_email(
     deals: List[Dict],
     smtp_host: str,
