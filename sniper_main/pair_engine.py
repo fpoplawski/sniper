@@ -87,9 +87,12 @@ def process_outbound(out_offer: FlightOffer, out_id: int) -> List[int]:
 
             msg = (
                 "💥 STEAL PAIR\n"
-                f"{out_offer.origin}→{out_offer.destination} {out_offer.depart_date}  "
+                f"{out_offer.origin}→{out_offer.destination} "
+                f"{out_offer.depart_date}  "
                 f"{out_offer.destination}→{out_offer.origin} {ret_date}\n"
-                f"OUT {price_out:.0f} PLN | IN {price_in:.0f} PLN | TOTAL {(price_out+price_in):.0f} PLN"
+                f"OUT {price_out:.0f} PLN | "
+                f"IN {price_in:.0f} PLN | "
+                f"TOTAL {(price_out+price_in):.0f} PLN"
             )
             send_telegram(msg)
             steals_created.append(pair_id)

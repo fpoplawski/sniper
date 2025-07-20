@@ -20,7 +20,8 @@ def setup_db(records):
     conn = sqlite3.connect(path)
     cur = conn.cursor()
     cur.execute(
-        "CREATE TABLE flights (origin TEXT, destination TEXT, price REAL, fetched_at TEXT)"
+        "CREATE TABLE flights (origin TEXT, destination TEXT, "
+        "price REAL, fetched_at TEXT)"
     )
     cur.executemany(
         "INSERT INTO flights VALUES (?, ?, ?, ?)",
@@ -35,9 +36,13 @@ def test_compute_baseline_and_score(tmp_path):
     now = datetime.now(timezone.utc)
     records = []
     for i, price in enumerate([100, 150]):
-        records.append(("FRA", "HAM", price, (now - timedelta(days=2)).isoformat()))
+        records.append(
+            ("FRA", "HAM", price, (now - timedelta(days=2)).isoformat())
+        )
     for i, price in enumerate([200, 250]):
-        records.append(("FRA", "HAM", price, (now - timedelta(days=1)).isoformat()))
+        records.append(
+            ("FRA", "HAM", price, (now - timedelta(days=1)).isoformat())
+        )
     for i, price in enumerate([300, 400]):
         records.append(("FRA", "HAM", price, now.isoformat()))
 

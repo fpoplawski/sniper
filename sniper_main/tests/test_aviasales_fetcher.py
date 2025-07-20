@@ -5,7 +5,6 @@ from datetime import datetime, timezone, timedelta
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch, Mock
 
-import pytest
 
 from sniper_main.aviasales_fetcher import AviasalesFetcher, main
 from sniper_main.deal_filter import compute_deal_score

@@ -64,7 +64,9 @@ def run_once(dep_date: Optional[str] = None) -> None:
                     currency=cfg.currency,
                 )
             except Exception as exc:
-                logging.warning("  Failed to fetch %s->%s: %s", origin, dest, exc)
+                logging.warning(
+                    "  Failed to fetch %s->%s: %s", origin, dest, exc
+                )
                 continue
 
             for off in offers_iter:
@@ -72,10 +74,7 @@ def run_once(dep_date: Optional[str] = None) -> None:
                 if off.stops > cfg.max_stops:
                     continue
 
-                if (
-                    off.max_layover_h
-                    and off.max_layover_h > cfg.max_layover_h
-                ):
+                if off.max_layover_h and off.max_layover_h > cfg.max_layover_h:
                     continue
 
                 days = travel_days(off.depart_date, off.return_date)
@@ -95,13 +94,17 @@ def run_once(dep_date: Optional[str] = None) -> None:
 
                 # ── STEAL? ───────────────────────────────────
                 if is_steal(off, cfg):
-                    avg = get_last_30d_avg(off.origin, off.destination) or off.price_pln
+                    avg = (
+                        get_last_30d_avg(off.origin, off.destination)
+                        or off.price_pln
+                    )
                     diff_pct = int(100 * (1 - off.price_pln / Decimal(avg)))
                     msg = (
                         f"✈️ STEAL!\n"
                         f"{off.origin} ➔ {off.destination}\n"
                         f"{off.depart_date} – {off.return_date or 'OW'}\n"
-                        f"{off.price_pln} PLN — -{diff_pct}% vs średnia 30 dni\n"
+                        f"{off.price_pln} PLN — -{diff_pct}% "
+                        f"vs średnia 30 dni\n"
                         f"[Rezerwuj]({off.deep_link})"
                     )
                     send_telegram(msg)
@@ -151,7 +154,9 @@ def fetch(date: Optional[str]) -> None:
                     currency=cfg.currency,
                 )
             except Exception as exc:
-                logging.warning("  Failed to fetch %s->%s: %s", origin, dest, exc)
+                logging.warning(
+                    "  Failed to fetch %s->%s: %s", origin, dest, exc
+                )
                 continue
             for off in offers:
                 click.echo(off)

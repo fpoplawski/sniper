@@ -39,17 +39,21 @@ def aggregate(
         conn.close()
 
     if df.empty:
-        result_df = pd.DataFrame(columns=["origin", "destination", "day", "mean_price"])
-    else:
-        daily_min = (
-            df.groupby(["origin", "destination", "day"], as_index=False)["price_pln"].min()
+        result_df = pd.DataFrame(
+            columns=["origin", "destination", "day", "mean_price"]
         )
+    else:
+        daily_min = df.groupby(
+            ["origin", "destination", "day"], as_index=False
+        )["price_pln"].min()
         daily_min = daily_min.sort_values("day")
         rolling = (
             daily_min.groupby(["origin", "destination"], as_index=False)
             .apply(
                 lambda g: g.assign(
-                    mean_price=g["price_pln"].rolling(window=30, min_periods=1).mean()
+                    mean_price=g["price_pln"]
+                    .rolling(window=30, min_periods=1)
+                    .mean()
                 )
             )
             .reset_index(drop=True)
@@ -61,7 +65,9 @@ def aggregate(
         )
 
     for row in result_df.itertuples(index=False):
-        upsert_daily_avg(row.origin, row.destination, row.mean_price, db_path=db_path)
+        upsert_daily_avg(
+            row.origin, row.destination, row.mean_price, db_path=db_path
+        )
 
     # Remove old aggregated records (>60 days) using pandas
     conn = sqlite3.connect(db_path)
@@ -71,13 +77,15 @@ def aggregate(
             conn,
             parse_dates=["day"],
         )
-        cutoff = (
-            pd.Timestamp.utcnow().tz_localize(None).normalize() - pd.Timedelta(days=60)
-        )
+        cutoff = pd.Timestamp.utcnow().tz_localize(
+            None
+        ).normalize() - pd.Timedelta(days=60)
         filtered = agg_df[agg_df["day"] >= cutoff]
         conn.execute("DELETE FROM offers_agg")
         if not filtered.empty:
-            filtered.to_sql("offers_agg", conn, if_exists="append", index=False)
+            filtered.to_sql(
+                "offers_agg", conn, if_exists="append", index=False
+            )
         conn.commit()
     finally:
         conn.close()
