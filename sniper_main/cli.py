@@ -6,6 +6,8 @@ from typing import Optional
 
 import click
 
+logger = logging.getLogger(__name__)
+
 from .daily_runner import cfg, fetcher, run_once
 from .db import migrate, DB_FILE
 from . import aggregator, daily_report
@@ -37,7 +39,7 @@ def fetch(date: Optional[str]) -> None:
     migrate(db_path=DB_FILE)
     for origin in cfg.origins or []:
         for dest in cfg.destinations or []:
-            logging.info("Fetching: %s \u2794 %s", origin, dest)
+            logger.info("Fetching: %s \u2794 %s", origin, dest)
             try:
                 offers = fetcher.search_prices(
                     origin,
@@ -47,7 +49,7 @@ def fetch(date: Optional[str]) -> None:
                     currency=cfg.currency,
                 )
             except Exception as exc:
-                logging.warning(
+                logger.warning(
                     "  Failed to fetch %s->%s: %s", origin, dest, exc
                 )
                 continue

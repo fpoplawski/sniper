@@ -3,8 +3,12 @@ from __future__ import annotations
 import sqlite3
 import html
 
+import logging
+
 from .db import DB_FILE
 from .notifier import send_email_daily
+
+logger = logging.getLogger(__name__)
 
 
 def send_daily_report(db_path: str = DB_FILE) -> None:

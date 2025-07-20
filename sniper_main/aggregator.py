@@ -4,7 +4,11 @@ import sqlite3
 import tempfile
 from typing import Optional, Union
 
+import logging
+
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 from .db import DB_FILE, upsert_daily_avg
 

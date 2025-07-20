@@ -5,7 +5,11 @@ import sqlite3
 from typing import Mapping, Any, List
 from datetime import datetime, timezone, date
 
+import logging
+
 from .geo import distance_km
+
+logger = logging.getLogger(__name__)
 
 
 # ────────────────────────────────────────────────────────────────

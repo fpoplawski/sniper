@@ -5,6 +5,10 @@ from email.message import EmailMessage
 import smtplib
 from typing import List, Dict
 
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 def send_email(
     deals: List[Dict],
