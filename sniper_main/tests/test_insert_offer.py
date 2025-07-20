@@ -25,14 +25,14 @@ def make_offer() -> FlightOffer:
 
 def test_insert_offer_deduplicates(tmp_path):
     db_file = tmp_path / "test.db"
-    schema_path = os.path.join(
+    migrations_dir = os.path.join(
         os.path.dirname(__file__),
         "..",
         "..",
-        "sniper-main",
-        "schema.sql",
+        "sniper_main",
+        "migrations",
     )
-    init_db(str(db_file), schema_path=schema_path)
+    init_db(str(db_file), migrations_dir=migrations_dir)
 
     offer = make_offer()
     first_id = insert_offer(offer, db_path=str(db_file))
