@@ -102,6 +102,61 @@ def aggregate(
     return None
 
 
+def compute_weekday_averages(db_path: str = DB_FILE) -> pd.DataFrame:
+    """Return average price per (origin, destination, weekday) for last 90 days."""
+
+    conn = sqlite3.connect(db_path)
+    try:
+        df = pd.read_sql_query(
+            """
+            SELECT origin, destination, depart_date AS depart, price_pln, fetched_at
+              FROM offers_raw
+             WHERE fetched_at >= DATE('now', '-90 day')
+            """,
+            conn,
+            parse_dates=["depart", "fetched_at"],
+        )
+    finally:
+        conn.close()
+
+    if df.empty:
+        return pd.DataFrame(
+            columns=["origin", "destination", "weekday", "avg_price"]
+        )
+
+    df["weekday"] = df["depart"].dt.dayofweek
+    result_df = (
+        df.groupby(["origin", "destination", "weekday"], as_index=False)[
+            "price_pln"
+        ]
+        .mean()
+        .rename(columns={"price_pln": "avg_price"})
+    )
+    return result_df
+
+
+def store_weekday_averages(db_path: str = DB_FILE) -> None:
+    """Compute weekday averages and store them in ``weekday_avg`` table."""
+
+    df = compute_weekday_averages(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute("DROP TABLE IF EXISTS weekday_avg")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS weekday_avg (
+                origin TEXT,
+                destination TEXT,
+                weekday INTEGER,
+                avg_price NUMERIC,
+                PRIMARY KEY (origin, destination, weekday)
+            )
+            """
+        )
+        if not df.empty:
+            df.to_sql("weekday_avg", conn, if_exists="append", index=False)
+        conn.commit()
+
+
 def main() -> None:
     aggregate()
 

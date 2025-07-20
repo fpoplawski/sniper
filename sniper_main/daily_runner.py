@@ -10,7 +10,7 @@ import click
 
 from .aviasales_fetcher import AviasalesFetcher
 from .config import Config
-from .steal_engine import is_steal
+from .steal_engine import is_weekday_steal
 from .pair_engine import process_outbound
 from .notifier import send_telegram
 from . import aggregator, daily_report
@@ -96,7 +96,7 @@ def run_once(dep_date: Optional[str] = None) -> None:
                     logger.info("Utworzono %d STEAL par", len(pair_steals))
 
                 # ── STEAL? ───────────────────────────────────
-                if is_steal(off, cfg):
+                if is_weekday_steal(off, cfg):
                     avg = (
                         get_last_30d_avg(off.origin, off.destination)
                         or off.price_pln
@@ -173,6 +173,7 @@ def report() -> None:
     migrate(db_path=DB_FILE)
 
     aggregator.aggregate()
+    aggregator.store_weekday_averages()
     daily_report.send_daily_report()
 
 
